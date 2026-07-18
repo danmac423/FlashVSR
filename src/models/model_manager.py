@@ -1,29 +1,36 @@
-import os, torch, json, importlib
-from typing import List
+import importlib
+import json
+import os
 
-from ..configs.model_config import (
-    model_loader_configs,
+import torch
+
+from src.configs.model_config import (
     huggingface_model_loader_configs,
+    model_loader_configs,
     patch_model_loader_configs,
 )
-from .utils import (
-    load_state_dict,
-    init_weights_on_device,
+from src.models.utils import (
     hash_state_dict_keys,
+    init_weights_on_device,
+    load_state_dict,
     split_state_dict_with_prefix,
 )
+from src.models.wan_video_dit import AttentionMode, MaskAttentionMode
+from src.utils.logger import get_logger
+
+logger = get_logger()
 
 
 def load_model_from_single_file(
-    state_dict, model_names, model_classes, model_resource, torch_dtype, device
+    state_dict, model_names, model_classes, model_resource, torch_dtype, device, **kwargs
 ):
     loaded_model_names, loaded_models = [], []
     for model_name, model_class in zip(model_names, model_classes):
         state_dict_converter = model_class.state_dict_converter()
         if model_resource == "civitai":
-            state_dict_results = state_dict_converter.from_civitai(state_dict)
+            state_dict_results = state_dict_converter.from_civitai(state_dict, **kwargs)
         elif model_resource == "diffusers":
-            state_dict_results = state_dict_converter.from_diffusers(state_dict)
+            state_dict_results = state_dict_converter.from_diffusers(state_dict, **kwargs)
         if isinstance(state_dict_results, tuple):
             model_state_dict, extra_kwargs = state_dict_results
         else:
@@ -51,7 +58,7 @@ def load_model_from_huggingface_folder(file_path, model_names, model_classes, to
             model = model.half()
         try:
             model = model.to(device=device)
-        except:
+        except:  # noqa: E722
             pass
         loaded_model_names.append(model_name)
         loaded_models.append(model)
@@ -80,7 +87,6 @@ def load_patch_model_from_single_file(
             for model_id in range(len(model_manager.model)):
                 base_model_name = model_manager.model_name[model_id]
                 if base_model_name == model_name:
-                    base_model_path = model_manager.model_path[model_id]
                     base_model = model_manager.model[model_id]
                     patched_model = load_single_patch_model_from_single_file(
                         state_dict,
@@ -155,7 +161,13 @@ class ModelDetectorFromSingleFile:
                 keys_hash_with_shape
             ]
             loaded_model_names, loaded_models = load_model_from_single_file(
-                state_dict, model_names, model_classes, model_resource, torch_dtype, device
+                state_dict,
+                model_names,
+                model_classes,
+                model_resource,
+                torch_dtype,
+                device,
+                **kwargs,
             )
             return loaded_model_names, loaded_models
 
@@ -165,7 +177,13 @@ class ModelDetectorFromSingleFile:
         if keys_hash in self.keys_hash_dict:
             model_names, model_classes, model_resource = self.keys_hash_dict[keys_hash]
             loaded_model_names, loaded_models = load_model_from_single_file(
-                state_dict, model_names, model_classes, model_resource, torch_dtype, device
+                state_dict,
+                model_names,
+                model_classes,
+                model_resource,
+                torch_dtype,
+                device,
+                **kwargs,
             )
             return loaded_model_names, loaded_models
 
@@ -231,14 +249,14 @@ class ModelDetectorFromHuggingfaceFolder:
         file_list = os.listdir(file_path)
         if "config.json" not in file_list:
             return False
-        with open(os.path.join(file_path, "config.json"), "r") as f:
+        with open(os.path.join(file_path, "config.json")) as f:
             config = json.load(f)
         if "architectures" not in config and "_class_name" not in config:
             return False
         return True
 
     def load(self, file_path="", state_dict={}, device="cuda", torch_dtype=torch.float16, **kwargs):
-        with open(os.path.join(file_path, "config.json"), "r") as f:
+        with open(os.path.join(file_path, "config.json")) as f:
             config = json.load(f)
         loaded_model_names, loaded_models = [], []
         architectures = (
@@ -320,10 +338,14 @@ class ModelManager:
         self,
         torch_dtype=torch.float16,
         device="cuda",
-        file_path_list: List[str] = [],
+        file_path_list: list[str] = [],
+        attn_mode: AttentionMode = AttentionMode.FLASH,
+        mask_attn_mode: MaskAttentionMode = None,
     ):
         self.torch_dtype = torch_dtype
         self.device = device
+        self.attn_mode = attn_mode
+        self.mask_attn_mode = mask_attn_mode
         self.model = []
         self.model_path = []
         self.model_name = []
@@ -338,6 +360,7 @@ class ModelManager:
     def load_model_from_single_file(
         self, file_path="", state_dict={}, model_names=[], model_classes=[], model_resource=None
     ):
+        logger.info("Loading models from file: %s", file_path)
         if len(state_dict) == 0:
             state_dict = load_state_dict(file_path)
         model_names, models = load_model_from_single_file(
@@ -349,6 +372,7 @@ class ModelManager:
             self.model_name.append(model_name)
 
     def load_model_from_huggingface_folder(self, file_path="", model_names=[], model_classes=[]):
+        logger.info("Loading models from folder: %s", file_path)
         model_names, models = load_model_from_huggingface_folder(
             file_path, model_names, model_classes, self.torch_dtype, self.device
         )
@@ -360,6 +384,7 @@ class ModelManager:
     def load_patch_model_from_single_file(
         self, file_path="", state_dict={}, model_names=[], model_classes=[], extra_kwargs={}
     ):
+        logger.debug("Loading patch models from file: %s", file_path)
         model_names, models = load_patch_model_from_single_file(
             state_dict,
             model_names,
@@ -373,19 +398,22 @@ class ModelManager:
             self.model.append(model)
             self.model_path.append(file_path)
             self.model_name.append(model_name)
+        logger.debug("Patched models loaded: %s", model_names)
 
     def load_lora(self, file_path="", state_dict={}, lora_alpha=1.0):
         if isinstance(file_path, list):
             for file_path_ in file_path:
                 self.load_lora(file_path_, state_dict=state_dict, lora_alpha=lora_alpha)
         else:
+            logger.info("Loading LoRA models from file: %s", file_path)
             is_loaded = False
             if len(state_dict) == 0:
                 state_dict = load_state_dict(file_path)
             for model_name, model, model_path in zip(self.model_name, self.model, self.model_path):
-                for lora in get_lora_loaders():
+                for lora in get_lora_loaders():  # type: ignore # noqa: F821
                     match_results = lora.match(model, state_dict)
                     if match_results is not None:
+                        logger.debug("Adding LoRA to %s (%s)", model_name, model_path)
                         lora_prefix, model_resource = match_results
                         lora.load(
                             model,
@@ -396,6 +424,8 @@ class ModelManager:
                         )
                         is_loaded = True
                         break
+            if not is_loaded:
+                logger.warning("Cannot load LoRA: %s", file_path)
 
     def load_model(self, file_path, model_names=None, device=None, torch_dtype=None):
         if device is None:
@@ -419,12 +449,16 @@ class ModelManager:
                     torch_dtype=torch_dtype,
                     allowed_model_names=model_names,
                     model_manager=self,
+                    attn_mode=self.attn_mode,
+                    mask_attn_mode=self.mask_attn_mode,
                 )
                 for model_name, model in zip(model_names, models):
                     self.model.append(model)
                     self.model_path.append(file_path)
                     self.model_name.append(model_name)
                 break
+        else:
+            logger.warning("Cannot detect model type. No models loaded.")
 
     def load_models(self, file_path_list, model_names=None, device=None, torch_dtype=None):
         for file_path in file_path_list:
@@ -441,6 +475,12 @@ class ModelManager:
                 fetched_model_paths.append(model_path)
         if len(fetched_models) == 0:
             return None
+        if len(fetched_models) == 1:
+            logger.debug("Using %s from %s", model_name, fetched_model_paths[0])
+        else:
+            logger.debug(
+                "Multiple %s models loaded: %s. Using first.", model_name, fetched_model_paths
+            )
         if require_model_path:
             return fetched_models[0], fetched_model_paths[0]
         else:
