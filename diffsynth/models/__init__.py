@@ -1,1 +1,1 @@
-from .model_manager import *
+from ..models.model_manager import *
