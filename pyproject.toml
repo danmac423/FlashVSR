@@ -14,12 +14,14 @@ dependencies = [
     "sageattention",
     "block_sparse_attn",
     "einops>=0.8.2",
+    "huggingface-hub>=1.16.1",
     "numpy>=2.4.4",
     "pillow>=12.2.0",
     "safetensors>=0.7.0",
     "tqdm>=4.67.3",
     "triton>=3.6.0",
     "torchvision>=0.25.0",
+    "torchao==0.16.0",
     "torchcodec==0.10.0",
     "av>=17.1.0",
 ]
@@ -50,6 +52,7 @@ dev = [
     "matplotlib>=3.10.8",
     "pyiqa>=0.1.15.post2",
     "pytest>=9.0.3",
+    "pytest-asyncio>=0.24",
     "ruff>=0.9.0",
 ]
 
