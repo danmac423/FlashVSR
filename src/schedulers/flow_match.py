@@ -1,10 +1,18 @@
 import torch
 
 
-
-class FlowMatchScheduler():
-
-    def __init__(self, num_inference_steps=100, num_train_timesteps=1000, shift=3.0, sigma_max=1.0, sigma_min=0.003/1.002, inverse_timesteps=False, extra_one_step=False, reverse_sigmas=False):
+class FlowMatchScheduler:
+    def __init__(
+        self,
+        num_inference_steps=100,
+        num_train_timesteps=1000,
+        shift=3.0,
+        sigma_max=1.0,
+        sigma_min=0.003 / 1.002,
+        inverse_timesteps=False,
+        extra_one_step=False,
+        reverse_sigmas=False,
+    ):
         self.num_train_timesteps = num_train_timesteps
         self.shift = shift
         self.sigma_max = sigma_max
@@ -14,8 +22,9 @@ class FlowMatchScheduler():
         self.reverse_sigmas = reverse_sigmas
         self.set_timesteps(num_inference_steps)
 
-
-    def set_timesteps(self, num_inference_steps=100, denoising_strength=1.0, training=False, shift=None):
+    def set_timesteps(
+        self, num_inference_steps=100, denoising_strength=1.0, training=False, shift=None
+    ):
         if shift is not None:
             self.shift = shift
         sigma_start = self.sigma_min + (self.sigma_max - self.sigma_min) * denoising_strength
@@ -36,7 +45,6 @@ class FlowMatchScheduler():
             bsmntw_weighing = y_shifted * (num_inference_steps / y_shifted.sum())
             self.linear_timesteps_weights = bsmntw_weighing
 
-
     def step(self, model_output, timestep, sample, to_final=False, **kwargs):
         if isinstance(timestep, torch.Tensor):
             timestep = timestep.cpu()
@@ -48,7 +56,6 @@ class FlowMatchScheduler():
             sigma_ = self.sigmas[timestep_id + 1]
         prev_sample = sample + model_output * (sigma_ - sigma)
         return prev_sample
-    
 
     def return_to_timestep(self, timestep, sample, sample_stablized):
         if isinstance(timestep, torch.Tensor):
@@ -57,8 +64,7 @@ class FlowMatchScheduler():
         sigma = self.sigmas[timestep_id]
         model_output = (sample - sample_stablized) / sigma
         return model_output
-    
-    
+
     def add_noise(self, original_samples, noise, timestep):
         if isinstance(timestep, torch.Tensor):
             timestep = timestep.cpu()
@@ -66,12 +72,10 @@ class FlowMatchScheduler():
         sigma = self.sigmas[timestep_id]
         sample = (1 - sigma) * original_samples + sigma * noise
         return sample
-    
 
     def training_target(self, sample, noise, timestep):
         target = noise - sample
         return target
-    
 
     def training_weight(self, timestep):
         timestep_id = torch.argmin((self.timesteps - timestep.to(self.timesteps.device)).abs())
