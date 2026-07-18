@@ -1,0 +1,81 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flashvsr-ultra-fast"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "torch==2.10.0",
+    "spas_sage_attn",
+    "sageattention",
+    "block_sparse_attn",
+    "einops>=0.8.2",
+    "numpy>=2.4.4",
+    "pillow>=12.2.0",
+    "safetensors>=0.7.0",
+    "tqdm>=4.67.3",
+    "triton>=3.6.0",
+    "torchvision>=0.25.0",
+    "torchcodec==0.10.0",
+    "av>=17.1.0",
+]
+
+[tool.uv]
+preview = true
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+torchvision = { index = "pytorch-cu128" }
+spas_sage_attn = { git = "https://github.com/thu-ml/SpargeAttn.git" }
+sageattention = { git = "https://github.com/thu-ml/SageAttention.git" }
+block_sparse_attn = { git = "https://github.com/mit-han-lab/Block-Sparse-Attention.git" }
+
+[tool.uv.extra-build-dependencies]
+spas_sage_attn = ["packaging", "torch", "ninja", "numpy"]
+sageattention = ["torch", "ninja", "numpy"]
+block_sparse_attn = ["numpy", "torch", "ninja", "packaging"]
+
+[dependency-groups]
+dev = [
+    "jupyter>=1.1.1",
+    "matplotlib>=3.10.8",
+    "pyiqa>=0.1.15.post2",
+    "pytest>=9.0.3",
+    "ruff>=0.9.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.11"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501", # line too long — egzekwowane przez formatter, nie linter
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
