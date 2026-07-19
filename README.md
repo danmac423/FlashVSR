@@ -1,4 +1,4 @@
-# FlashVSR Ultra Fast
+# FlashVSR 
 
 Video super-resolution using FlashVSR with configurable attention modes, sparse masking, and quantization.
 
@@ -120,7 +120,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -e .
 deactivate
-cd ../FlashVSR_Ultra_Fast
+cd ../FlashVSR
 ```
 
 **Step 1 — convert frame sequences to MP4** (run from this repo):
@@ -136,11 +136,11 @@ cd ../DOVER
 source .venv/bin/activate
 
 python evaluate_a_set_of_videos.py \
-    --input_video_dir ../FlashVSR_Ultra_Fast/datasets/YouHQ40/SR_flash_bs_none_videos \
-    --output_result_csv ../FlashVSR_Ultra_Fast/benchmarks/quality/results/YouHQ40/SR_flash_bs_none_dover.csv
+    --input_video_dir ../FlashVSR/datasets/YouHQ40/SR_flash_bs_none_videos \
+    --output_result_csv ../FlashVSR/benchmarks/quality/results/YouHQ40/SR_flash_bs_none_dover.csv
 
 deactivate
-cd ../FlashVSR_Ultra_Fast
+cd ../FlashVSR
 ```
 
 ### Merge all metrics into one CSV
