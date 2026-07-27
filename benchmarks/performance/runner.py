@@ -347,6 +347,25 @@ def _parse_args() -> argparse.Namespace:
     )
     p.add_argument("--no-spatial-tiling", action="store_true", dest="no_spatial")
     p.add_argument("--no-temporal-tiling", action="store_true", dest="no_temporal")
+    p.add_argument(
+        "--attn-mode",
+        choices=["flash", "sage"],
+        default=None,
+        dest="attn_mode",
+        help="Run a single combination instead of the full DEFAULT_COMBINATIONS sweep",
+    )
+    p.add_argument(
+        "--mask-attn-mode",
+        choices=["block_sparse", "sparse_sage", "none"],
+        default="block_sparse",
+        dest="mask_attn_mode",
+    )
+    p.add_argument(
+        "--quantization",
+        choices=["none", "int8_weight_only", "int8_dynamic"],
+        default="none",
+        dest="quantization",
+    )
     return p.parse_args()
 
 
@@ -371,12 +390,24 @@ def main() -> None:
         enabled=not args.no_temporal, tile_size=100, tile_overlap=6
     )
 
+    if args.attn_mode is None:
+        combinations = DEFAULT_COMBINATIONS
+    else:
+        mask_attn_mode = (
+            None if args.mask_attn_mode == "none" else MaskAttentionMode(args.mask_attn_mode)
+        )
+        combinations = [
+            Combination(
+                AttentionMode(args.attn_mode), mask_attn_mode, QuantizationMode(args.quantization)
+            )
+        ]
+
     results = benchmark(
         video_path=args.video,
         model=args.model,
         device=torch.device(args.device),
         dtype=torch.bfloat16,
-        combinations=DEFAULT_COMBINATIONS,
+        combinations=combinations,
         num_warmup_runs=args.warmup_runs,
         num_measured_runs=args.measured_runs,
         proc_config=proc_config,

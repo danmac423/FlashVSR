@@ -1,0 +1,6 @@
+label,attn_mode,mask_attn_mode,quantization_mode,run_index,input_height,input_width,num_frames,num_spatial_tiles,init_time_s,inference_time_s,time_per_frame_s,peak_vram_mb,vram_after_init_mb
+sage/sparse_sage/int8_dynamic,sage,sparse_sage,int8_dynamic,0,256,448,101,6,3.3214,132.3186,1.3101,8920.0,3714.0
+sage/sparse_sage/int8_dynamic,sage,sparse_sage,int8_dynamic,1,256,448,101,6,3.3214,132.6599,1.3135,8920.0,3714.0
+sage/sparse_sage/int8_dynamic,sage,sparse_sage,int8_dynamic,2,256,448,101,6,3.3214,132.8011,1.3149,8920.0,3714.0
+sage/sparse_sage/int8_dynamic,sage,sparse_sage,int8_dynamic,3,256,448,101,6,3.3214,132.9054,1.3159,8920.0,3714.0
+sage/sparse_sage/int8_dynamic,sage,sparse_sage,int8_dynamic,4,256,448,101,6,3.3214,132.9654,1.3165,8920.0,3714.0
