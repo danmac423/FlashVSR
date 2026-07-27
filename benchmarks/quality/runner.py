@@ -178,7 +178,8 @@ def main() -> None:
     metric_fns: dict[str, Any] = {}
     if has_gt:
         for m in FR_METRICS:
-            metric_fns[m] = pyiqa.create_metric(m, device=device)
+            kwargs = {"test_y_channel": True} if m == "psnr" else {}
+            metric_fns[m] = pyiqa.create_metric(m, device=device, **kwargs)
     for m in NR_METRICS:
         metric_fns[m] = pyiqa.create_metric(m, device=device)
     logger.info("Loaded: %s", list(metric_fns.keys()))
