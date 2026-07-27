@@ -39,8 +39,8 @@ from src.utils.tiling import calculate_spatial_tile_coords
 logger = get_logger()
 
 BENCHMARK_NUM_FRAMES = 101
-BENCHMARK_HEIGHT = 192
-BENCHMARK_WIDTH = 352
+DEFAULT_INPUT_HEIGHT = 256
+DEFAULT_INPUT_WIDTH = 448
 
 
 @dataclass
@@ -107,35 +107,35 @@ def _get_video_metadata(video_path: str) -> tuple[int, int, int]:
     return int(num_frames), int(meta.height), int(meta.width)
 
 
-def _load_benchmark_frames(video_path: str) -> torch.Tensor:
+def _load_benchmark_frames(video_path: str, input_height: int, input_width: int) -> torch.Tensor:
     """Validate dimensions and load frames into memory as a float16 tensor.
 
     Raises ValueError if any dimension is smaller than required.
-    Returns tensor (BENCHMARK_NUM_FRAMES, BENCHMARK_HEIGHT, BENCHMARK_WIDTH, 3) float16 [0, 1].
+    Returns tensor (BENCHMARK_NUM_FRAMES, input_height, input_width, 3) float16 [0, 1].
     """
     num_frames, height, width = _get_video_metadata(video_path)
 
-    if num_frames < BENCHMARK_NUM_FRAMES or height < BENCHMARK_HEIGHT or width < BENCHMARK_WIDTH:
+    if num_frames < BENCHMARK_NUM_FRAMES or height < input_height or width < input_width:
         raise ValueError(
             f"Video too small for benchmark: {num_frames}x{height}x{width}. "
-            f"Required at least {BENCHMARK_NUM_FRAMES}x{BENCHMARK_HEIGHT}x{BENCHMARK_WIDTH}."
+            f"Required at least {BENCHMARK_NUM_FRAMES}x{input_height}x{input_width}."
         )
 
     decoder = VideoDecoder(video_path, dimension_order="NHWC")
     frames = decoder.get_frames_in_range(0, BENCHMARK_NUM_FRAMES).data.to(torch.float16) / 255.0
 
-    if height > BENCHMARK_HEIGHT or width > BENCHMARK_WIDTH:
-        crop_y = (height - BENCHMARK_HEIGHT) // 2
-        crop_x = (width - BENCHMARK_WIDTH) // 2
-        frames = frames[:, crop_y : crop_y + BENCHMARK_HEIGHT, crop_x : crop_x + BENCHMARK_WIDTH, :]
+    if height > input_height or width > input_width:
+        crop_y = (height - input_height) // 2
+        crop_x = (width - input_width) // 2
+        frames = frames[:, crop_y : crop_y + input_height, crop_x : crop_x + input_width, :]
         logger.info(
             "Trimmed input: %dx%dx%d → %dx%dx%d",
             num_frames,
             height,
             width,
             BENCHMARK_NUM_FRAMES,
-            BENCHMARK_HEIGHT,
-            BENCHMARK_WIDTH,
+            input_height,
+            input_width,
         )
 
     return frames
@@ -186,16 +186,18 @@ def benchmark(
     proc_config: ProcessingConfig,
     spatial_config: SpatialTilingConfig,
     temporal_config: TemporalTilingConfig,
+    input_height: int = DEFAULT_INPUT_HEIGHT,
+    input_width: int = DEFAULT_INPUT_WIDTH,
 ) -> list[RunResult]:
-    frames = _load_benchmark_frames(video_path)
+    frames = _load_benchmark_frames(video_path, input_height, input_width)
 
     torch.cuda.set_device(device)
 
     num_spatial_tiles = (
         len(
             calculate_spatial_tile_coords(
-                BENCHMARK_HEIGHT,
-                BENCHMARK_WIDTH,
+                input_height,
+                input_width,
                 spatial_config.tile_size,
                 spatial_config.tile_overlap,
             )
@@ -206,8 +208,8 @@ def benchmark(
     logger.info(
         "Input: %s  |  %dx%d  |  frames: %d  |  spatial tiles/frame: %d",
         video_path,
-        BENCHMARK_WIDTH,
-        BENCHMARK_HEIGHT,
+        input_width,
+        input_height,
         BENCHMARK_NUM_FRAMES,
         num_spatial_tiles,
     )
@@ -282,8 +284,8 @@ def benchmark(
                         else "none",
                         quantization_mode=combo.quantization_mode.value,
                         run_index=i,
-                        input_height=BENCHMARK_HEIGHT,
-                        input_width=BENCHMARK_WIDTH,
+                        input_height=input_height,
+                        input_width=input_width,
                         num_frames=BENCHMARK_NUM_FRAMES,
                         num_spatial_tiles=num_spatial_tiles,
                         init_time_s=round(init_time, 4),
@@ -335,6 +337,14 @@ def _parse_args() -> argparse.Namespace:
         "--tile-size", type=int, nargs=2, default=[192, 192], metavar=("H", "W"), dest="tile_size"
     )
     p.add_argument("--tile-overlap", type=int, default=24, dest="tile_overlap")
+    p.add_argument(
+        "--input-size",
+        type=int,
+        nargs=2,
+        default=[DEFAULT_INPUT_HEIGHT, DEFAULT_INPUT_WIDTH],
+        metavar=("H", "W"),
+        dest="input_size",
+    )
     p.add_argument("--no-spatial-tiling", action="store_true", dest="no_spatial")
     p.add_argument("--no-temporal-tiling", action="store_true", dest="no_temporal")
     return p.parse_args()
@@ -372,6 +382,8 @@ def main() -> None:
         proc_config=proc_config,
         spatial_config=spatial_config,
         temporal_config=temporal_config,
+        input_height=args.input_size[0],
+        input_width=args.input_size[1],
     )
 
     save_results(results, args.output_dir)

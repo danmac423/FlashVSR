@@ -47,7 +47,14 @@ def main() -> None:
         "--tile-sizes", type=int, nargs="+", default=[128, 160, 192, 224, 256], dest="tile_sizes"
     )
     p.add_argument("--tile-overlap", type=int, default=24, dest="tile_overlap")
-    p.add_argument("--warmup-runs", type=int, default=1, dest="warmup_runs")
+    p.add_argument(
+        "--warmup-runs",
+        type=int,
+        default=0,
+        dest="warmup_runs",
+        help="benchmark()'s warmup loop swallows OOM instead of raising it, so this "
+        "defaults to 0 to make sure OOM at a given tile size gets caught and recorded",
+    )
     p.add_argument("--measured-runs", type=int, default=5, dest="measured_runs")
     p.add_argument(
         "--output-dir", default="benchmarks/performance/results/tile_size_sweep", dest="output_dir"
