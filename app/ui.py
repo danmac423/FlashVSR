@@ -7,8 +7,6 @@ import httpx
 from app.models import JobParams
 from src.config.processing import (
     AttentionConfig,
-    IOConfig,
-    OutputMode,
     ProcessingConfig,
     QuantizationConfig,
     QuantizationMode,
@@ -25,13 +23,19 @@ _ATTN_MODES = [m.value for m in AttentionMode]
 _MASK_ATTN_MODES = ["none"] + [m.value for m in MaskAttentionMode]
 _QUANT_MODES = [m.value for m in QuantizationMode]
 
+# Fixed to the values used across all experiments/benchmarks (see main.py,
+# scripts/run_dataset.py, scripts/tile_size_sweep.py, benchmarks/performance/runner.py).
+# Not exposed in the UI.
+_FIXED_SPARSE_RATIO = 2.0
+_FIXED_KV_RATIO = 3.0
+_FIXED_LOCAL_RANGE = 11
+_FIXED_COLOR_FIX = True
+_FIXED_SEED = 0
+_FIXED_VRAM_ENABLED = False
+_FIXED_NUM_PERSISTENT = None
+
 
 def _build_params(
-    sparse_ratio,
-    kv_ratio,
-    local_range,
-    color_fix,
-    seed,
     spatial_enabled,
     spatial_tile_h,
     spatial_tile_w,
@@ -42,16 +46,14 @@ def _build_params(
     attn_mode,
     mask_attn_mode,
     quant_mode,
-    vram_enabled,
-    num_persistent,
 ) -> JobParams:
     return JobParams(
         proc_config=ProcessingConfig(
-            sparse_ratio=sparse_ratio,
-            kv_ratio=kv_ratio,
-            local_range=local_range,
-            color_fix=color_fix,
-            seed=seed,
+            sparse_ratio=_FIXED_SPARSE_RATIO,
+            kv_ratio=_FIXED_KV_RATIO,
+            local_range=_FIXED_LOCAL_RANGE,
+            color_fix=_FIXED_COLOR_FIX,
+            seed=_FIXED_SEED,
         ),
         attention_config=AttentionConfig(
             attn_mode=AttentionMode(attn_mode),
@@ -69,19 +71,14 @@ def _build_params(
         ),
         quantization_config=QuantizationConfig(mode=QuantizationMode(quant_mode)),
         vram_config=VRAMConfig(
-            enabled=vram_enabled,
-            num_persistent_param_in_dit=int(num_persistent) if num_persistent >= 0 else None,
+            enabled=_FIXED_VRAM_ENABLED,
+            num_persistent_param_in_dit=_FIXED_NUM_PERSISTENT,
         ),
     )
 
 
 def process_video(
     video_path,
-    sparse_ratio,
-    kv_ratio,
-    local_range,
-    color_fix,
-    seed,
     spatial_enabled,
     spatial_tile_h,
     spatial_tile_w,
@@ -92,19 +89,21 @@ def process_video(
     attn_mode,
     mask_attn_mode,
     quant_mode,
-    vram_enabled,
-    num_persistent,
 ):
     if video_path is None:
         raise gr.Error("Upload a video first.")
 
     params = _build_params(
-        sparse_ratio, kv_ratio, local_range, color_fix, seed,
-        spatial_enabled, spatial_tile_h, spatial_tile_w, spatial_overlap,
-        temporal_enabled, temporal_tile_size, temporal_overlap,
-        attn_mode, mask_attn_mode,
+        spatial_enabled,
+        spatial_tile_h,
+        spatial_tile_w,
+        spatial_overlap,
+        temporal_enabled,
+        temporal_tile_size,
+        temporal_overlap,
+        attn_mode,
+        mask_attn_mode,
         quant_mode,
-        vram_enabled, num_persistent,
     )
 
     filename = Path(video_path).name
@@ -143,13 +142,6 @@ with gr.Blocks(title="FlashVSR") as demo:
         with gr.Column():
             video_in = gr.Video(label="Input (LQ)")
 
-            with gr.Accordion("Processing", open=True):
-                sparse_ratio = gr.Slider(0.5, 5.0, value=2.0, step=0.1, label="Sparse Ratio")
-                kv_ratio = gr.Slider(1.0, 8.0, value=3.0, step=0.5, label="KV Ratio")
-                local_range = gr.Slider(3, 21, value=11, step=2, label="Local Range")
-                color_fix = gr.Checkbox(value=True, label="Color Fix")
-                seed = gr.Number(value=0, precision=0, label="Seed")
-
             with gr.Accordion("Spatial Tiling", open=False):
                 spatial_enabled = gr.Checkbox(value=True, label="Enabled")
                 spatial_tile_h = gr.Slider(64, 512, value=192, step=32, label="Tile Height")
@@ -158,19 +150,19 @@ with gr.Blocks(title="FlashVSR") as demo:
 
             with gr.Accordion("Temporal Tiling", open=False):
                 temporal_enabled = gr.Checkbox(value=False, label="Enabled")
-                temporal_tile_size = gr.Slider(20, 200, value=100, step=10, label="Tile Size (frames)")
+                temporal_tile_size = gr.Slider(
+                    20, 200, value=100, step=10, label="Tile Size (frames)"
+                )
                 temporal_overlap = gr.Slider(0, 20, value=6, step=1, label="Overlap (frames)")
 
             with gr.Accordion("Attention", open=False):
                 attn_mode = gr.Dropdown(_ATTN_MODES, value="flash", label="Attention Mode")
-                mask_attn_mode = gr.Dropdown(_MASK_ATTN_MODES, value="block_sparse", label="Mask Attention Mode")
+                mask_attn_mode = gr.Dropdown(
+                    _MASK_ATTN_MODES, value="block_sparse", label="Mask Attention Mode"
+                )
 
             with gr.Accordion("Quantization", open=False):
                 quant_mode = gr.Dropdown(_QUANT_MODES, value="none", label="Quantization Mode")
-
-            with gr.Accordion("VRAM", open=False):
-                vram_enabled = gr.Checkbox(value=False, label="Enable VRAM Management")
-                num_persistent = gr.Number(value=-1, precision=0, label="Persistent Params in DiT (-1 = all)")
 
             run_btn = gr.Button("Run Super Resolution", variant="primary")
 
@@ -180,12 +172,16 @@ with gr.Blocks(title="FlashVSR") as demo:
 
     inputs = [
         video_in,
-        sparse_ratio, kv_ratio, local_range, color_fix, seed,
-        spatial_enabled, spatial_tile_h, spatial_tile_w, spatial_overlap,
-        temporal_enabled, temporal_tile_size, temporal_overlap,
-        attn_mode, mask_attn_mode,
+        spatial_enabled,
+        spatial_tile_h,
+        spatial_tile_w,
+        spatial_overlap,
+        temporal_enabled,
+        temporal_tile_size,
+        temporal_overlap,
+        attn_mode,
+        mask_attn_mode,
         quant_mode,
-        vram_enabled, num_persistent,
     ]
 
     run_btn.click(
