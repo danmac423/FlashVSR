@@ -18,6 +18,39 @@ BLOCK_SPARSE_ATTN_CUDA_ARCHS="8.0;8.6" \
 uv sync --all-groups
 ```
 
+## Quick start: process a single video
+
+`main.py` runs FlashVSR end-to-end on one video file. The model weights are downloaded automatically from the [JunhaoZhuang/FlashVSR](https://huggingface.co/JunhaoZhuang/FlashVSR) Hugging Face repo on first run (cached under `models/`):
+
+```bash
+uv run python main.py inputs/example.mp4
+```
+
+The upscaled video is written to `<video_name>_output/` by default. Key options:
+
+| Flag | Default | Description |
+|---|---|---|
+| `-o, --output-dir` | `<video_name>_output` | Output directory |
+| `--output-mode` | `video` | `video`, `frames`, or `none` |
+| `--model` | `FlashVSR-v1.1` | Model variant (suffix of the HF repo name) |
+| `--device` | autodetect | e.g. `cuda:0`, `mps` |
+| `--scale` | `4` | Upscaling factor |
+| `--attn-mode` | `flash` | `flash` or `sage` |
+| `--mask-attn-mode` | `block_sparse` | `block_sparse`, `sparse_sage`, or `none` |
+| `--quantization` | `none` | `none`, `int8_weight_only`, `int8_dynamic` |
+| `--no-spatial-tiling` | enabled | Disable spatial tiling (⚠️ needs much more VRAM) |
+| `--spatial-tile-size H W` | `192 192` | Spatial tile size |
+| `--temporal-tiling` | disabled | Enable temporal tiling (for long videos) |
+
+Example combining sage attention, sparse-sage masking and int8 dynamic quantization:
+```bash
+uv run python main.py inputs/example.mp4 \
+    --attn-mode sage --mask-attn-mode sparse_sage \
+    --quantization int8_dynamic
+```
+
+Run `uv run python main.py --help` for the full list of flags.
+
 ## Datasets
 
 ```
@@ -38,9 +71,9 @@ uv run python scripts/generate_lq.py \
     --multi-video --seed 42
 ```
 
-## Running FlashVSR
+## Running FlashVSR on a dataset
 
-All variants write SR frames to `datasets/<dataset>/<variant>/`.
+`scripts/run_dataset.py` runs FlashVSR over every clip subdirectory in a dataset (batch equivalent of `main.py`). All variants write SR frames to `datasets/<dataset>/<variant>/`.
 
 ### Variants
 
@@ -153,6 +186,41 @@ uv run python scripts/merge_dover_metrics.py \
 ```
 
 Output columns: `clip, num_frames, psnr, ssim, lpips, niqe, musiq, clipiqa, dover`
+
+## Performance benchmarking
+
+`benchmarks/performance/runner.py` measures wall-clock time and peak VRAM for one or more attention/mask/quantization combinations on a single video:
+
+```bash
+# sweep over the default set of combinations
+uv run python -m benchmarks.performance.runner --video inputs/example0.mp4
+
+# a single combination, with custom warmup/measured run counts
+uv run python -m benchmarks.performance.runner \
+    --video inputs/example0.mp4 \
+    --attn-mode sage --mask-attn-mode sparse_sage --quantization int8_dynamic \
+    --warmup-runs 0 --measured-runs 5
+
+# disable spatial/temporal tiling, override tile/input size
+uv run python -m benchmarks.performance.runner \
+    --video inputs/example0.mp4 --no-spatial-tiling
+```
+
+Results: `benchmarks/performance/results/*.{csv,json}`.
+
+### Spatial tile size sweep
+
+`scripts/tile_size_sweep.py` sweeps spatial tile size (flash attention, block-sparse mask, no quantization) and records time/VRAM per size, recording OOMs instead of aborting the sweep:
+
+```bash
+uv run python scripts/tile_size_sweep.py \
+    --video inputs/example4.mp4 \
+    --tile-sizes 128 160 192 224 256 \
+    --tile-overlap 24 \
+    --measured-runs 5
+```
+
+Results: `benchmarks/performance/results/tile_size_sweep/*.{csv,json}`.
 
 ## Running the API
 
