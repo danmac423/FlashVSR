@@ -69,7 +69,7 @@ class TemporalTilingConfig:
 
     enabled: bool = True
     tile_size: int = 100
-    tile_overlap: int = 4
+    tile_overlap: int = 6
 
 
 @dataclass
