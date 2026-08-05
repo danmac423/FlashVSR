@@ -4,7 +4,7 @@ import os
 
 import torch
 
-from src.configs.model_config import (
+from src.config.model_config import (
     huggingface_model_loader_configs,
     model_loader_configs,
     patch_model_loader_configs,
