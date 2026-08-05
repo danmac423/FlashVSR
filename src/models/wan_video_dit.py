@@ -44,6 +44,46 @@ class MaskAttentionMode(Enum):
     BLOCK_SPARSE = "block_sparse"
 
 
+_ATTENTION_PACKAGE_REQUIREMENTS = {
+    AttentionMode.SAGE: ("sageattention", SAGE_ATTN_AVAILABLE),
+    MaskAttentionMode.SPARSE_SAGE: ("spas_sage_attn", SPARSE_SAGE_ATTN_AVAILABLE),
+    MaskAttentionMode.BLOCK_SPARSE: ("block_sparse_attn", BLOCK_SPARSE_ATTN_AVAILABLE),
+}
+
+
+def validate_attention_availability(
+    attn_mode: AttentionMode,
+    mask_attn_mode: MaskAttentionMode | None = None,
+    strict: bool = False,
+) -> None:
+    """Check that packages required by the selected attention modes are installed.
+
+    Meant to be called once at startup (e.g. in pipeline/model setup scripts)
+    so missing optional dependencies surface before a run starts, instead of
+    being silently masked by the per-call fallback inside `flash_attention`.
+
+    By default (`strict=False`) a missing package only logs a WARNING, matching
+    the silent-fallback-to-dense-attention behavior of `flash_attention`. Pass
+    `strict=True` (e.g. from benchmarking scripts, where a silent fallback would
+    quietly compare the wrong attention implementations) to raise a
+    `RuntimeError` instead.
+    """
+    for mode in (attn_mode, mask_attn_mode):
+        if mode is None:
+            continue
+        requirement = _ATTENTION_PACKAGE_REQUIREMENTS.get(mode)
+        if requirement is None:
+            continue
+        package_name, available = requirement
+        if not available:
+            message = (
+                f"{mode.name} attention requested but '{package_name}' is not installed."
+            )
+            if strict:
+                raise RuntimeError(f"{message} Install it or choose a different mode.")
+            _logger.warning("%s Falling back to dense attention (SDPA).", message)
+
+
 # ----------------------------
 # Local / window masks
 # ----------------------------

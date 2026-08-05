@@ -12,6 +12,7 @@ from torchao.quantization import (
 
 from src.config.processing import AttentionConfig, QuantizationConfig, QuantizationMode, VRAMConfig
 from src.models.model_manager import ModelManager
+from src.models.wan_video_dit import validate_attention_availability
 from src.models.TCDecoder import build_tcdecoder
 from src.models.utils import Causal_LQ4x_Proj
 from src.pipelines.flashvsr_tiny import FlashVSRTinyPipeline
@@ -97,6 +98,8 @@ def init_pipeline(
     prompt_path = os.path.join(base_dir, "posi_prompt.pth")
     if not os.path.exists(prompt_path):
         raise RuntimeError(f'"posi_prompt.pth" does not exist!\nPlease save it to "{base_dir}"')
+
+    validate_attention_availability(attention_config.attn_mode, attention_config.mask_attn_mode)
 
     mm = ModelManager(
         torch_dtype=dtype,

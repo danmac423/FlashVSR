@@ -30,7 +30,11 @@ from src.config.processing import (
     TemporalTilingConfig,
     VRAMConfig,
 )
-from src.models.wan_video_dit import AttentionMode, MaskAttentionMode
+from src.models.wan_video_dit import (
+    AttentionMode,
+    MaskAttentionMode,
+    validate_attention_availability,
+)
 from src.processing.pipeline import init_pipeline
 from src.processing.video import flashvsr
 from src.utils.logger import get_logger, setup_logger
@@ -229,6 +233,9 @@ def benchmark(
         torch.cuda.reset_peak_memory_stats(device.index)
 
         try:
+            validate_attention_availability(
+                combo.attn_mode, combo.mask_attn_mode, strict=True
+            )
             t0 = time.perf_counter()
             pipe = init_pipeline(
                 model,
