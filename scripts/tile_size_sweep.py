@@ -50,10 +50,9 @@ def main() -> None:
     p.add_argument(
         "--warmup-runs",
         type=int,
-        default=0,
+        default=1,
         dest="warmup_runs",
-        help="benchmark()'s warmup loop swallows OOM instead of raising it, so this "
-        "defaults to 0 to make sure OOM at a given tile size gets caught and recorded",
+        help="OOM during warmup is caught and recorded just like OOM during measured runs",
     )
     p.add_argument("--measured-runs", type=int, default=5, dest="measured_runs")
     p.add_argument(

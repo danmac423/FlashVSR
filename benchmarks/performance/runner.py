@@ -268,6 +268,15 @@ def benchmark(
             try:
                 _run_inference(pipe, frames, combo, proc_config, spatial_config, temporal_config)
             except Exception as exc:
+                is_oom = isinstance(exc, torch.OutOfMemoryError) or "out of memory" in str(exc).lower()
+                if is_oom:
+                    # Let OOM propagate like it already does for measured runs, instead of
+                    # silently skipping the combination — but clean up the pipe first so the
+                    # next combination doesn't inherit its VRAM.
+                    del pipe
+                    gc.collect()
+                    torch.cuda.empty_cache()
+                    raise
                 logger.error("Warmup failed — skipping combination: %s", exc)
                 warmup_ok = False
                 break
