@@ -70,6 +70,8 @@ class RunResult:
     input_width: int
     num_frames: int
     num_spatial_tiles: int
+    tile_height: int
+    tile_width: int
     init_time_s: float
     inference_time_s: float
     time_per_frame_s: float
@@ -209,13 +211,18 @@ def benchmark(
         if spatial_config.enabled
         else 1
     )
+    tile_height, tile_width = (
+        spatial_config.tile_size if spatial_config.enabled else (input_height, input_width)
+    )
     logger.info(
-        "Input: %s  |  %dx%d  |  frames: %d  |  spatial tiles/frame: %d",
+        "Input: %s  |  %dx%d  |  frames: %d  |  spatial tiles/frame: %d  |  tile size: %dx%d",
         video_path,
         input_width,
         input_height,
         BENCHMARK_NUM_FRAMES,
         num_spatial_tiles,
+        tile_width,
+        tile_height,
     )
     logger.info(
         "Combinations: %d  |  warmup: %d  |  measured: %d",
@@ -295,6 +302,8 @@ def benchmark(
                         input_width=input_width,
                         num_frames=BENCHMARK_NUM_FRAMES,
                         num_spatial_tiles=num_spatial_tiles,
+                        tile_height=tile_height,
+                        tile_width=tile_width,
                         init_time_s=round(init_time, 4),
                         inference_time_s=round(inference_time, 4),
                         time_per_frame_s=round(tpf, 4),
