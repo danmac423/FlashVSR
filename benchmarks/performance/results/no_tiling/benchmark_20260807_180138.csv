@@ -1,0 +1,6 @@
+label,attn_mode,mask_attn_mode,quantization_mode,run_index,input_height,input_width,num_frames,num_spatial_tiles,tile_height,tile_width,init_time_s,inference_time_s,time_per_frame_s,peak_vram_mb,vram_after_init_mb
+flash/block_sparse/none,flash,block_sparse,none,0,192,352,101,1,192,352,5.6055,9.1935,0.091,14574.0,3612.0
+flash/block_sparse/none,flash,block_sparse,none,1,192,352,101,1,192,352,5.6055,9.1947,0.091,14844.0,3612.0
+flash/block_sparse/none,flash,block_sparse,none,2,192,352,101,1,192,352,5.6055,9.2328,0.0914,14580.0,3612.0
+flash/block_sparse/none,flash,block_sparse,none,3,192,352,101,1,192,352,5.6055,9.2084,0.0912,14576.0,3612.0
+flash/block_sparse/none,flash,block_sparse,none,4,192,352,101,1,192,352,5.6055,9.2417,0.0915,14722.0,3612.0
