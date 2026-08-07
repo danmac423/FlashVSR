@@ -20,7 +20,7 @@ API_URL = "http://localhost:8000"
 OUTPUTS_DIR = Path(__file__).parent.parent / "data" / "outputs"
 
 _ATTN_MODES = [m.value for m in AttentionMode]
-_MASK_ATTN_MODES = ["none"] + [m.value for m in MaskAttentionMode]
+_MASK_ATTN_MODES = [m.value for m in MaskAttentionMode]
 _QUANT_MODES = [m.value for m in QuantizationMode]
 
 # Fixed to the values used across all experiments/benchmarks (see main.py,
@@ -142,33 +142,59 @@ with gr.Blocks(title="FlashVSR") as demo:
         with gr.Column():
             video_in = gr.Video(label="Input (LQ)")
 
-            with gr.Accordion("Spatial Tiling", open=False):
-                spatial_enabled = gr.Checkbox(value=True, label="Enabled")
-                spatial_tile_h = gr.Slider(64, 512, value=192, step=32, label="Tile Height")
-                spatial_tile_w = gr.Slider(64, 512, value=192, step=32, label="Tile Width")
-                spatial_overlap = gr.Slider(0, 64, value=24, step=4, label="Overlap")
+            # with gr.Accordion("Spatial Tiling", open=False):
+            #     spatial_enabled = gr.Checkbox(value=True, label="Enabled")
+            #     spatial_tile_h = gr.Slider(64, 512, value=192, step=32, label="Tile Height")
+            #     spatial_tile_w = gr.Slider(64, 512, value=192, step=32, label="Tile Width")
+            #     spatial_overlap = gr.Slider(0, 64, value=24, step=4, label="Overlap")
 
-            with gr.Accordion("Temporal Tiling", open=False):
-                temporal_enabled = gr.Checkbox(value=False, label="Enabled")
-                temporal_tile_size = gr.Slider(
-                    20, 200, value=100, step=10, label="Tile Size (frames)"
-                )
-                temporal_overlap = gr.Slider(0, 20, value=6, step=1, label="Overlap (frames)")
+            # with gr.Accordion("Temporal Tiling", open=False):
+            #     temporal_enabled = gr.Checkbox(value=False, label="Enabled")
+            #     temporal_tile_size = gr.Slider(
+            #         20, 200, value=100, step=10, label="Tile Size (frames)"
+            #     )
+            #     temporal_overlap = gr.Slider(0, 20, value=6, step=1, label="Overlap (frames)")
 
-            with gr.Accordion("Attention", open=False):
-                attn_mode = gr.Dropdown(_ATTN_MODES, value="flash", label="Attention Mode")
-                mask_attn_mode = gr.Dropdown(
-                    _MASK_ATTN_MODES, value="block_sparse", label="Mask Attention Mode"
-                )
+            # with gr.Accordion("Attention", open=False):
+            #     attn_mode = gr.Dropdown(_ATTN_MODES, value="flash", label="Attention Mode")
+            #     mask_attn_mode = gr.Dropdown(
+            #         _MASK_ATTN_MODES, value="block_sparse", label="Mask Attention Mode"
+            #     )
 
-            with gr.Accordion("Quantization", open=False):
-                quant_mode = gr.Dropdown(_QUANT_MODES, value="none", label="Quantization Mode")
+            # with gr.Accordion("Quantization", open=False):
+            #     quant_mode = gr.Dropdown(_QUANT_MODES, value="none", label="Quantization Mode")
 
-            run_btn = gr.Button("Run Super Resolution", variant="primary")
+            # run_btn = gr.Button("Run Super Resolution", variant="primary")
 
         with gr.Column():
             video_out = gr.Video(label="Output (4× SR)")
-            status_box = gr.Textbox(label="Status", interactive=False, value="")
+
+    with gr.Row():
+        status_box = gr.Textbox(label="Status", interactive=False, value="")
+
+    with gr.Row():
+        with gr.Accordion("Spatial Tiling", open=False):
+            spatial_enabled = gr.Checkbox(value=True, label="Enabled")
+            spatial_tile_h = gr.Slider(64, 512, value=192, step=32, label="Tile Height")
+            spatial_tile_w = gr.Slider(64, 512, value=192, step=32, label="Tile Width")
+            spatial_overlap = gr.Slider(0, 64, value=24, step=4, label="Overlap")
+
+        with gr.Accordion("Temporal Tiling", open=False):
+            temporal_enabled = gr.Checkbox(value=False, label="Enabled")
+            temporal_tile_size = gr.Slider(20, 200, value=100, step=10, label="Tile Size (frames)")
+            temporal_overlap = gr.Slider(0, 20, value=6, step=1, label="Overlap (frames)")
+
+        with gr.Accordion("Attention", open=False):
+            attn_mode = gr.Dropdown(_ATTN_MODES, value="flash", label="Attention Mode")
+            mask_attn_mode = gr.Dropdown(
+                _MASK_ATTN_MODES, value="block_sparse", label="Mask Attention Mode"
+            )
+
+        with gr.Accordion("Quantization", open=False):
+            quant_mode = gr.Dropdown(_QUANT_MODES, value="none", label="Quantization Mode")
+
+    with gr.Row():
+        run_btn = gr.Button("Run Super Resolution", variant="primary")
 
     inputs = [
         video_in,
