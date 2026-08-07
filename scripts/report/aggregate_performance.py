@@ -14,6 +14,7 @@ from scripts.report.common import (
     group_by,
     integer,
     load_manifest,
+    verify_manifest,
     num,
     read_runs,
     signed,
@@ -185,6 +186,70 @@ def build_e2(manifest: dict) -> None:
         print(f"    kafel {tile}: {agg.time_s / processed:.3e} s/px")
 
 
+def build_feasibility(manifest: dict) -> None:
+    """Tabela granicy wykonalności.
+
+    Zestawia rozmiar kafla niewykonalny w konfiguracji odniesienia z tym samym
+    rozmiarem po zastosowaniu badanych technik. Pokazuje przesunięcie granicy,
+    a nie samą procentową oszczędność pamięci.
+    """
+    sweep_spec = entry(manifest, "e2_sweep")
+    sweep = group_by(read_runs(sweep_spec), lambda r: r.tile_height)
+
+    spec = entry(manifest, "e2_tile224")
+    runs = read_runs(spec)
+    agg = Aggregate(key=(spec["id"],), runs=runs)
+    tile = runs[0].tile_height
+
+    largest_ok = max(t for t in sweep if not sweep[t].oom)
+    rows = [
+        [
+            "odniesienia",
+            str(largest_ok),
+            "wykonalna",
+            num(sweep[largest_ok].time_s, 1),
+            integer(sweep[largest_ok].peak_mib),
+        ]
+    ]
+    if tile in sweep and sweep[tile].oom:
+        rows.append(["odniesienia", str(tile), "przepełnienie", "—", "—"])
+
+    dense = DENSE.get(runs[0].attn_mode, runs[0].attn_mode)
+    sparse = SPARSE.get(runs[0].mask_attn_mode, runs[0].mask_attn_mode)
+    quant = QUANT.get(runs[0].quantization_mode, runs[0].quantization_mode)
+    rows.append(
+        [
+            f"{dense} / {sparse} / {quant}",
+            str(tile),
+            "wykonalna",
+            num(agg.time_s, 1),
+            integer(agg.peak_mib),
+        ]
+    )
+
+    write_table(
+        "granica_wykonalnosci.typ",
+        typst_table(
+            caption=(
+                f"Przesunięcie granicy wykonalności: rozmiar kafla niewykonalny "
+                f"w konfiguracji odniesienia staje się wykonalny po zastosowaniu "
+                f"badanych technik (wejście {runs[0].input_height} $times$ "
+                f"{runs[0].input_width}, {runs[0].num_frames} klatek)"
+            ),
+            label="tab:granica",
+            columns="(auto, auto, auto, auto, auto)",
+            align="(left, right, left, right, right)",
+            header=["Konfiguracja", "Kafel", "Wynik", "Czas [s]", "Szczyt [MiB]"],
+            rows=rows,
+        ),
+    )
+
+    budget = manifest["meta"]["budget_mib"]
+    print(f"\n  kafel {tile} po zastosowaniu technik: {agg.peak_mib:.0f} MiB "
+          f"({budget - agg.peak_mib:.0f} MiB poniżej progu), czas {agg.time_s:.1f} s")
+    print(f"  ten sam kafel w konfiguracji odniesienia: przepełnienie")
+
+
 def build_reference(manifest: dict) -> None:
     """Tabela konfiguracji referencyjnej: przepełnienia i zapotrzebowanie."""
     ooms = {(o["input_height"], o["input_width"]): o for o in manifest.get("oom", [])}
@@ -247,10 +312,13 @@ def build_reference(manifest: dict) -> None:
 
 def main() -> None:
     manifest = load_manifest()
+    verify_manifest(manifest)
     print("E1 — mechanizm uwagi i kwantyzacja")
     build_e1(manifest)
     print("\nE2 — rozmiar kafla")
     build_e2(manifest)
+    print("\nGranica wykonalności")
+    build_feasibility(manifest)
     print("\nKonfiguracja referencyjna")
     build_reference(manifest)
 

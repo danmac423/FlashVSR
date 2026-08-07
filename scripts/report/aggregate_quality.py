@@ -15,6 +15,7 @@ import csv
 from scripts.report.common import (
     RESULTS_ROOT,
     load_manifest,
+    verify_manifest,
     num,
     signed,
     typst_table,
@@ -147,6 +148,7 @@ def build_dataset(manifest: dict, dataset: str) -> None:
 
 def main() -> None:
     manifest = load_manifest()
+    verify_manifest(manifest)
     for dataset in manifest["quality"]["datasets"]:
         print(f"{dataset}")
         build_dataset(manifest, dataset)

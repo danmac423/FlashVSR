@@ -6,7 +6,15 @@
 # pomiarów. Dla nowych przebiegów pola te pochodzą wprost z plików wynikowych.
 
 [meta]
-budget_mib = 9871          # pamięć dostępna procesowi na RTX 3080 (9,64 GiB)
+# Pojemność karty docelowej. device_total_mib należy odczytać dokładnie:
+#   torch.cuda.get_device_properties(0).total_memory / 1024**2
+# cuda_context_mib to różnica między pamięcią zajętą przez proces a pulą
+# alokatora, odczytana z komunikatów o przepełnieniu (ok. 270 MiB w obu).
+# Progiem porównania dla max_memory_reserved jest budget_mib, ponieważ
+# kontekst CUDA pozostaje poza pulą alokatora.
+device_total_mib = 9871    # TODO: wstawić wartość dokładną
+cuda_context_mib = 270
+budget_mib = 9601
 nominal_vram_gb = 10
 reference_label = "flash/block_sparse/none"
 frames = 101
@@ -16,7 +24,7 @@ frames = 101
 [[performance]]
 id = "e1"
 kind = "grid"
-path = "e1_uwaga_kwantyzacja/benchmark_20260607_180206.csv"
+path = "benchmarks/performance/results/benchmark_20260607_180206.csv"
 device = "NVIDIA GeForce RTX 3080"
 warmup_runs = 1
 measured_runs = 3
@@ -29,18 +37,17 @@ note = "Dwanaście kombinacji jądra uwagi i trybu kwantyzacji, kafel 192."
 [[performance]]
 id = "e2_sweep"
 kind = "sweep"
-path = "e2_rozmiar_kafla/tile_sweep_20260727_220443.csv"
+path = "benchmarks/performance/results/tile_size_sweep/tile_sweep_20260727_220443.csv"
 device = "NVIDIA GeForce RTX 3080"
 warmup_runs = 1
 measured_runs = 5
 spatial_overlap = 24
 temporal_tiling = false
-note = "Rozgrzewkę pominięto, aby przypadki przepełnienia zostały odnotowane."
 
 [[performance]]
 id = "e2_tile224"
 kind = "single"
-path = "e2_rozmiar_kafla/benchmark_20260727_234210.csv"
+path = "benchmarks/performance/results/benchmark_20260727_234210.csv"
 device = "NVIDIA GeForce RTX 3080"
 warmup_runs = 1
 measured_runs = 5
@@ -51,7 +58,7 @@ note = "Kafel 224, niewykonalny w konfiguracji odniesienia."
 [[performance]]
 id = "ref_a100_192x352"
 kind = "single"
-path = "e2_referencja/a100_192x352.csv"
+path = "benchmarks/performance/results/no_tiling/benchmark_20260807_180138.csv"
 device = "NVIDIA A100 80GB"
 warmup_runs = 1
 measured_runs = 5
@@ -62,7 +69,7 @@ note = "Konfiguracja referencyjna bez kafelkowania, rozdzielczość autorów mod
 [[performance]]
 id = "ref_a100_256x448"
 kind = "single"
-path = "e2_referencja/a100_256x448.csv"
+path = "benchmarks/performance/results/no_tiling/benchmark_20260806_203006.csv"
 device = "NVIDIA A100 80GB"
 warmup_runs = 1
 measured_runs = 5
@@ -75,7 +82,7 @@ note = "Konfiguracja referencyjna bez kafelkowania."
 [[oom]]
 id = "ref_rtx3080_192x352"
 device = "NVIDIA GeForce RTX 3080"
-log = "e2_referencja/rtx3080_no_tiling_192x352.log"
+log = "benchmarks/performance/results/no_tiling/rtx3080_no_tiling_192x352.log"
 input_height = 192
 input_width = 352
 free_mib = 118.81
@@ -85,7 +92,7 @@ note = "Konfiguracja referencyjna bez kafelkowania."
 [[oom]]
 id = "ref_rtx3080_256x448"
 device = "NVIDIA GeForce RTX 3080"
-log = "e2_referencja/rtx3080_no_tiling.log"
+log = "benchmarks/performance/results/no_tiling/rtx3080_no_tiling.log"
 input_height = 256
 input_width = 448
 free_mib = 412.12
@@ -95,7 +102,7 @@ note = "Konfiguracja referencyjna bez kafelkowania."
 # ---------------------------------------------------------------- E3
 
 [quality]
-root = "e3_jakosc"
+root = "benchmarks/quality/results"
 datasets = ["YouHQ40", "VideoLQ"]
 
 # Łańcuch przyrostowy. Kolejność wpisów wyznacza kolejność wierszy w tabelach,

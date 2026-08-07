@@ -14,8 +14,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-RESULTS_ROOT = REPO_ROOT / "benchmarks" / "results"
-MANIFEST_PATH = RESULTS_ROOT / "manifest.toml"
+RESULTS_ROOT = REPO_ROOT           # ścieżki w manifeście są względem korzenia
+MANIFEST_PATH = REPO_ROOT / "benchmarks" / "manifest.toml"
 TABLES_DIR = REPO_ROOT / "report" / "tables"
 FIGURES_DIR = REPO_ROOT / "report" / "figures"
 
@@ -26,6 +26,52 @@ FIGURES_DIR = REPO_ROOT / "report" / "figures"
 def load_manifest() -> dict:
     with open(MANIFEST_PATH, "rb") as f:
         return tomllib.load(f)
+
+
+def resolve(relative: str, context: str = "") -> Path:
+    """Zamienia ścieżkę z manifestu na bezwzględną, z czytelnym błędem."""
+    path = RESULTS_ROOT / relative
+    if not path.exists():
+        where = f" (wpis '{context}')" if context else ""
+        raise FileNotFoundError(
+            f"Nie znaleziono pliku wskazanego w manifeście{where}:\n"
+            f"  manifest: {MANIFEST_PATH}\n"
+            f"  ścieżka w manifeście: {relative}\n"
+            f"  szukano w: {path}\n"
+            f"Ścieżki w manifeście podaje się względem korzenia repozytorium."
+        )
+    return path
+
+
+def verify_manifest(manifest: dict) -> None:
+    """Sprawdza wszystkie ścieżki przed rozpoczęciem pracy."""
+    missing: list[str] = []
+    for spec in manifest.get("performance", []):
+        if not (RESULTS_ROOT / spec["path"]).exists():
+            missing.append(f"  [{spec['id']}] {spec['path']}")
+    for spec in manifest.get("oom", []):
+        if not (RESULTS_ROOT / spec["log"]).exists():
+            missing.append(f"  [{spec['id']}] {spec['log']}")
+
+    quality = manifest.get("quality", {})
+    labels = [r["file"] for r in quality.get("rung", [])]
+    labels += [b["file"] for b in quality.get("branch", [])]
+    found_any = False
+    for dataset in quality.get("datasets", []):
+        for label in labels:
+            if (RESULTS_ROOT / quality["root"] / dataset / f"{label}_merged.csv").exists():
+                found_any = True
+    if quality and not found_any:
+        missing.append(f"  [quality] nic nie znaleziono w {quality.get('root')}")
+
+    if missing:
+        raise SystemExit(
+            "Manifest wskazuje na nieistniejące pliki:\n"
+            + "\n".join(missing)
+            + f"\n\nManifest: {MANIFEST_PATH}"
+            + "\nŚcieżki podaje się względem korzenia repozytorium "
+            + f"({REPO_ROOT})."
+        )
 
 
 def entry(manifest: dict, entry_id: str) -> dict:
@@ -82,7 +128,7 @@ def read_runs(spec: dict) -> list[Run]:
     kolumnę ``tile_size`` oraz znacznik ``oom``. Obie postacie sprowadzane są tu
     do wspólnej reprezentacji.
     """
-    path = RESULTS_ROOT / spec["path"]
+    path = resolve(spec["path"], spec["id"])
     runs: list[Run] = []
 
     with open(path, newline="", encoding="utf-8") as f:
