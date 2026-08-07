@@ -6,15 +6,9 @@
 # pomiarów. Dla nowych przebiegów pola te pochodzą wprost z plików wynikowych.
 
 [meta]
-# Pojemność karty docelowej. device_total_mib należy odczytać dokładnie:
-#   torch.cuda.get_device_properties(0).total_memory / 1024**2
-# cuda_context_mib to różnica między pamięcią zajętą przez proces a pulą
-# alokatora, odczytana z komunikatów o przepełnieniu (ok. 270 MiB w obu).
-# Progiem porównania dla max_memory_reserved jest budget_mib, ponieważ
-# kontekst CUDA pozostaje poza pulą alokatora.
-device_total_mib = 9871    # TODO: wstawić wartość dokładną
-cuda_context_mib = 270
-budget_mib = 9601
+device_total_mib = 9875
+cuda_context_mib = 605
+budget_mib       = 9270
 nominal_vram_gb = 10
 reference_label = "flash/block_sparse/none"
 frames = 101
