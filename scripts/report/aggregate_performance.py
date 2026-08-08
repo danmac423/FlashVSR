@@ -67,7 +67,7 @@ def build_e1(manifest: dict) -> None:
                     DENSE[attn],
                     SPARSE[mask],
                     QUANT[quant],
-                    num(agg.time_s, 1),
+                    num(agg.time_s, 2),
                     num(agg.time_per_frame_s, 3),
                     integer(agg.peak_mib),
                 ]
@@ -149,7 +149,7 @@ def build_e2(manifest: dict) -> None:
                 str(tile),
                 str(count),
                 num(redundancy, 2),
-                num(agg.time_s, 1),
+                num(agg.time_s, 2),
                 num(agg.time_per_frame_s, 3),
                 num(agg.time_s / count, 2),
                 integer(agg.peak_mib),
@@ -207,7 +207,7 @@ def build_feasibility(manifest: dict) -> None:
             "odniesienia",
             str(largest_ok),
             "wykonalna",
-            num(sweep[largest_ok].time_s, 1),
+            num(sweep[largest_ok].time_s, 2),
             integer(sweep[largest_ok].peak_mib),
         ]
     ]
@@ -222,7 +222,7 @@ def build_feasibility(manifest: dict) -> None:
             f"{dense} / {sparse} / {quant}",
             str(tile),
             "wykonalna",
-            num(agg.time_s, 1),
+            num(agg.time_s, 2),
             integer(agg.peak_mib),
         ]
     )
