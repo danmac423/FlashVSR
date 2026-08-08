@@ -23,7 +23,7 @@ uv sync --all-groups
 `main.py` runs FlashVSR end-to-end on one video file. The model weights are downloaded automatically from the [JunhaoZhuang/FlashVSR](https://huggingface.co/JunhaoZhuang/FlashVSR) Hugging Face repo on first run (cached under `models/`):
 
 ```bash
-uv run python main.py inputs/example.mp4
+uv run python main.py inputs/example0.mp4
 ```
 
 The upscaled video is written to `<video_name>_output/` by default. Key options:
@@ -44,7 +44,7 @@ The upscaled video is written to `<video_name>_output/` by default. Key options:
 
 Example combining sage attention, sparse-sage masking and int8 dynamic quantization:
 ```bash
-uv run python main.py inputs/example.mp4 \
+uv run python main.py inputs/example0.mp4 \
     --attn-mode sage --mask-attn-mode sparse_sage \
     --quantization int8_dynamic
 ```
@@ -268,6 +268,16 @@ uv run python -m app.ui
 ```
 
 The UI is served at `http://localhost:7860`. Upload a video, adjust the processing/tiling/attention/quantization settings, and click "Run Super Resolution" — the output plays once the job finishes.
+
+## Generating report tables and figures
+
+`scripts/report/` aggregates raw results (indexed by `benchmarks/manifest.toml`) into the tables and figures used in the thesis (chapter 8):
+
+```bash
+uv run python -m scripts.report.aggregate_performance   # -> report/tables/*.typ
+uv run python -m scripts.report.aggregate_quality        # -> report/tables/*.typ
+uv run python -m scripts.report.plots                     # -> report/figures/*.pdf
+```
 
 ## Development
 
