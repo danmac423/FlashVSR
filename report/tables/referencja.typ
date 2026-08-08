@@ -1,18 +1,18 @@
 #figure(
   kind: table,
-  caption: [Konfiguracja referencyjna bez kafelkowania przestrzennego na obu platformach sprzętowych],
+  caption: [Zapotrzebowanie konfiguracji referencyjnej bez kafelkowania przestrzennego, zmierzone na akceleratorze A100],
   [
     #set text(size: 8.5pt)
     #show table.cell.where(y: 0): strong
 
     #table(
-      columns: (auto, auto, auto, auto, auto, auto),
-      align: (right, left, right, right, right, right),
+      columns: (auto, auto, auto, auto),
+      align: (right, right, right, right),
       stroke: 0.5pt + luma(150),
       fill: (col, row) => if row == 0 { luma(230) } else { none },
-      table.header([Wejście], [RTX 3080], [Wolne], [Nieudana alokacja], [A100 — szczyt \[MiB\]], [A100 — czas \[s\]]),
+      table.header([Wejście], [Szczyt \[MiB\]], [Czas \[s\]], [Krotność pojemności RTX 3080]),
 
-      [192 $times$ 352], [przepełnienie], [119 MiB], [434 MiB], [14 844], [9,21],
-      [256 $times$ 448], [przepełnienie], [412 MiB], [736 MiB], [23 512], [13,92],
+      [192 $times$ 352], [14 844], [9,21], [1,50$times$],
+      [256 $times$ 448], [23 512], [13,92], [2,38$times$],
     )],
 ) <tab:referencja>
