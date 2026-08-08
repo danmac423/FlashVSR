@@ -276,10 +276,15 @@ def integer(value: float | None, dash: str = "—") -> str:
 
 
 def signed(value: float | None, precision: int = 1, unit: str = "") -> str:
+    """Liczba ze znakiem. Wartość zerowa po zaokrągleniu podawana jest bez znaku,
+    aby uniknąć zapisów w rodzaju "-0,00"."""
     if value is None:
         return "—"
-    sign = "+" if value >= 0 else "\u2212"
-    return f"{sign}{abs(value):.{precision}f}".replace(".", ",") + unit
+    rounded = round(value, precision)
+    if rounded == 0:
+        return f"{0:.{precision}f}".replace(".", ",") + unit
+    sign = "+" if rounded > 0 else "\u2212"
+    return f"{sign}{abs(rounded):.{precision}f}".replace(".", ",") + unit
 
 
 # ------------------------------------------------------------- emisja do Typsta

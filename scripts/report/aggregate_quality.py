@@ -58,11 +58,15 @@ def build_dataset(manifest: dict, dataset: str) -> None:
     quality = manifest["quality"]
     root = quality["root"]
 
-    entries = [(r["file"], r["name"], True) for r in quality["rung"]]
-    entries += [(b["file"], b["name"], False) for b in quality["branch"]]
+    rungs = [(r["file"], r["name"]) for r in quality["rung"]]
+    branches = [(b["file"], b["name"], b["base"]) for b in quality["branch"]]
 
     data = {}
-    for label, _, _ in entries:
+    for label, _ in rungs:
+        avg = read_average(root, dataset, label)
+        if avg is not None:
+            data[label] = avg
+    for label, _, base in branches:
         avg = read_average(root, dataset, label)
         if avg is not None:
             data[label] = avg
@@ -71,65 +75,84 @@ def build_dataset(manifest: dict, dataset: str) -> None:
         print(f"  {dataset}: brak plików, pomijam")
         return
 
-    # Metryki obecne w tym zbiorze (pełnoreferencyjnych brak dla VideoLQ).
     present = [
         m for m in METRICS if any(data[label].get(m[0]) is not None for label in data)
     ]
-
-    rows, deltas = [], []
-    previous = None
-    for label, name, is_rung in entries:
-        if label not in data:
-            continue
-        values = data[label]
-        rows.append([name] + [num(values[key], prec) for key, _, prec, _ in present])
-
-        if is_rung and previous is not None:
-            delta_row = [name]
-            for key, _, prec, lower_better in present:
-                a, b = data[previous].get(key), values.get(key)
-                if a is None or b is None:
-                    delta_row.append("—")
-                    continue
-                diff = b - a
-                mark = "" if abs(diff) > 0 else ""
-                delta_row.append(signed(diff, prec) + mark)
-            deltas.append(delta_row)
-        if is_rung:
-            previous = label
-
     header = ["Konfiguracja"] + [h for _, h, _, _ in present]
     columns = "(auto," + " auto," * len(present)
     columns = columns.rstrip(",") + ")"
+    align = "(left" + ", right" * len(present) + ")"
 
+    def row(label: str, name: str) -> list[str]:
+        return [name] + [num(data[label][key], prec) for key, _, prec, _ in present]
+
+    # --- tabela 1: łańcuch przyrostowy, wartości bezwzględne
+    ladder = [(l, n) for l, n in rungs if l in data]
     write_table(
         f"jakosc_{dataset.lower()}.typ",
         typst_table(
             caption=DATASET_CAPTION.get(dataset, f"Metryki jakości dla zbioru {dataset}"),
             label=f"tab:jakosc-{dataset.lower()}",
             columns=columns,
-            align="(left" + ", right" * len(present) + ")",
+            align=align,
             header=header,
-            rows=rows,
+            rows=[row(l, n) for l, n in ladder],
         ),
     )
+
+    # --- tabela 2: zmiany względem konfiguracji poprzedniej
+    deltas = []
+    for i in range(1, len(ladder)):
+        prev_label, curr_label = ladder[i - 1][0], ladder[i][0]
+        delta_row = [ladder[i][1]]
+        for key, _, prec, _ in present:
+            a, b = data[prev_label].get(key), data[curr_label].get(key)
+            delta_row.append("—" if a is None or b is None else signed(b - a, prec))
+        deltas.append(delta_row)
 
     write_table(
         f"jakosc_{dataset.lower()}_delty.typ",
         typst_table(
             caption=(
-                f"Zmiana metryk względem szczebla poprzedniego, zbiór {dataset}"
+                f"Zmiana metryk względem konfiguracji poprzedniej, zbiór {dataset}"
             ),
             label=f"tab:jakosc-{dataset.lower()}-delty",
             columns=columns,
-            align="(left" + ", right" * len(present) + ")",
+            align=align,
             header=header,
             rows=deltas,
         ),
     )
 
+    # --- tabela 3: rozmiary kafla, wraz z konfiguracją odniesienia
+    if branches:
+        bases = {base for _, _, base in branches if base in data}
+        tile_rows = []
+        for base in bases:
+            name = next(n for l, n in rungs if l == base)
+            tile_rows.append(row(base, name.lstrip("+ ")))
+        for label, name, _ in branches:
+            if label in data:
+                tile_rows.append(row(label, name))
+        if len(tile_rows) > 1:
+            write_table(
+                f"jakosc_{dataset.lower()}_kafle.typ",
+                typst_table(
+                    caption=(
+                        f"Metryki jakości dla różnych rozmiarów kafla, zbiór "
+                        f"{dataset}. Pozostałe parametry jak w konfiguracji "
+                        f"z kafelkowaniem z @tab:jakosc-{dataset.lower()}"
+                    ),
+                    label=f"tab:jakosc-{dataset.lower()}-kafle",
+                    columns=columns,
+                    align=align,
+                    header=header,
+                    rows=tile_rows,
+                ),
+            )
+
     # Podsumowanie tekstowe: ile kosztuje pierwszy szczebel, ile wszystkie dalsze.
-    rungs = [r["file"] for r in quality["rung"] if r["file"] in data]
+    rungs = [l for l, _ in ladder]
     if len(rungs) >= 3:
         print(f"\n  {dataset} — udział pierwszego szczebla w całkowitej zmianie:")
         for key, name, prec, _ in present:
