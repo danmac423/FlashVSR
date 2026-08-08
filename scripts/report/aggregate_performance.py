@@ -251,29 +251,32 @@ def build_feasibility(manifest: dict) -> None:
 
 
 def build_reference(manifest: dict) -> None:
-    """Tabela konfiguracji referencyjnej: przepełnienia i zapotrzebowanie."""
-    ooms = {(o["input_height"], o["input_width"]): o for o in manifest.get("oom", [])}
+    """Zapotrzebowanie konfiguracji referencyjnej, zmierzone na A100.
 
-    rows = []
+    Wyniki z karty docelowej mają charakter binarny (przepełnienie) i nie dają
+    się zestawić w tej samej tabeli z wielkościami liczbowymi, dlatego trafiają
+    wyłącznie na wyjście, do wykorzystania w tekście.
+    """
+    total = manifest["meta"]["device_total_mib"]
+
     a100 = {}
     for spec in manifest["performance"]:
         if not spec["id"].startswith("ref_a100"):
             continue
         runs = read_runs(spec)
-        agg = Aggregate(key=(spec["id"],), runs=runs)
-        a100[(runs[0].input_height, runs[0].input_width)] = agg
+        a100[(runs[0].input_height, runs[0].input_width)] = Aggregate(
+            key=(spec["id"],), runs=runs
+        )
 
+    rows = []
     for res in sorted(a100, key=lambda r: r[0] * r[1]):
         agg = a100[res]
-        oom = ooms.get(res)
         rows.append(
             [
                 f"{res[0]} $times$ {res[1]}",
-                "przepełnienie" if oom else "—",
-                f"{num(oom['free_mib'], 0)} MiB" if oom else "—",
-                f"{num(oom['failed_alloc_mib'], 0)} MiB" if oom else "—",
                 integer(agg.peak_mib),
                 num(agg.time_s, 2),
+                num(agg.peak_mib / total, 2) + "$times$",
             ]
         )
 
@@ -281,33 +284,37 @@ def build_reference(manifest: dict) -> None:
         "referencja.typ",
         typst_table(
             caption=(
-                "Konfiguracja referencyjna bez kafelkowania przestrzennego "
-                "na obu platformach sprzętowych"
+                "Zapotrzebowanie konfiguracji referencyjnej bez kafelkowania "
+                "przestrzennego, zmierzone na akceleratorze A100"
             ),
             label="tab:referencja",
-            columns="(auto, auto, auto, auto, auto, auto)",
-            align="(right, left, right, right, right, right)",
+            columns="(auto, auto, auto, auto)",
+            align="(right, right, right, right)",
             header=[
-                "Wejście", "RTX 3080", "Wolne", "Nieudana alokacja",
-                "A100 — szczyt [MiB]", "A100 — czas [s]",
+                "Wejście", "Szczyt [MiB]", "Czas [s]",
+                "Krotność pojemności RTX 3080",
             ],
             rows=rows,
         ),
     )
 
+    print("\n  przepełnienia na karcie docelowej (do wykorzystania w tekście):")
+    for o in manifest.get("oom", []):
+        print(
+            f"    {o['input_height']}x{o['input_width']}: wolne "
+            f"{o['free_mib']:.0f} MiB, nieudana alokacja {o['failed_alloc_mib']:.0f} MiB"
+        )
+
     if len(a100) == 2:
-        (small, big) = sorted(a100, key=lambda r: r[0] * r[1])
+        small, big = sorted(a100, key=lambda r: r[0] * r[1])
         area = (big[0] * big[1]) / (small[0] * small[1])
         peak = a100[big].peak_mib / a100[small].peak_mib
         const = a100[small].after_init_mib or 0
         variable = (a100[big].peak_mib - const) / (a100[small].peak_mib - const)
         print("\n  charakter wzrostu bez kafelkowania:")
         print(f"    powierzchnia   x{area:.2f}")
-        print(f"    szczyt         x{peak:.2f}  (podliniowo, składowa stała {const:.0f} MiB)")
+        print(f"    szczyt         x{peak:.2f}  (składowa stała {const:.0f} MiB)")
         print(f"    część zmienna  x{variable:.2f}")
-        budget = manifest["meta"]["budget_mib"]
-        for res in (small, big):
-            print(f"    {res[0]}x{res[1]}: {a100[res].peak_mib / budget:.2f}x budżetu karty docelowej")
 
 
 def main() -> None:
