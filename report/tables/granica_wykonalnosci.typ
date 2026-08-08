@@ -12,8 +12,8 @@
       fill: (col, row) => if row == 0 { luma(230) } else { none },
       table.header([Konfiguracja], [Kafel], [Wynik], [Czas \[s\]], [Szczyt \[MiB\]]),
 
-      [odniesienia], [192], [wykonalna], [81,6], [9 292],
+      [odniesienia], [192], [wykonalna], [81,62], [9 292],
       [odniesienia], [224], [przepełnienie], [—], [—],
-      [SageAttention / SpargeAttention / INT8 wag i akt.], [224], [wykonalna], [132,8], [8 920],
+      [SageAttention / SpargeAttention / INT8 wag i akt.], [224], [wykonalna], [132,80], [8 920],
     )],
 ) <tab:granica>

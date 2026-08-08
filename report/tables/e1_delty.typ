@@ -12,7 +12,7 @@
       fill: (col, row) => if row == 0 { luma(230) } else { none },
       table.header([Konfiguracja], [Czas], [Pamięć], [Pamięć (wzgl.)]),
 
-      [SDPA / blokowo-rzadka / brak], [+0,0%], [+0 MiB], [+0,0%],
+      [SDPA / blokowo-rzadka / brak], [0,0%], [0 MiB], [0,0%],
       [SDPA / blokowo-rzadka / INT8 wag], [+3,6%], [−330 MiB], [−3,6%],
       [SDPA / blokowo-rzadka / INT8 wag i akt.], [+29,6%], [−898 MiB], [−9,9%],
       [SageAttention / blokowo-rzadka / brak], [+1,7%], [+182 MiB], [+2,0%],
