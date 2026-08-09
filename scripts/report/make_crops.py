@@ -122,14 +122,14 @@ def extract(frame: Image.Image, crop: Crop, scale: int, is_lr: bool) -> Image.Im
     return frame.crop(box)
 
 
-def overview(frame: Image.Image, crops: list[Crop], width: int) -> Image.Image:
-    """Rysuje pełną klatkę z zaznaczonymi obszarami wycinków."""
+def overview(frame: Image.Image, crops: list[Crop], width: int, scale: int) -> Image.Image:
+    """Rysuje pełną klatkę LR z zaznaczonymi obszarami wycinków (współrzędne HR podzielone przez skalę)."""
     canvas = frame.copy()
     draw = ImageDraw.Draw(canvas)
     line = max(2, canvas.width // 400)
     for crop in crops:
         draw.rectangle(
-            [crop.x, crop.y, crop.x + crop.w, crop.y + crop.h],
+            [crop.x // scale, crop.y // scale, (crop.x + crop.w) // scale, (crop.y + crop.h) // scale],
             outline=ACCENT,
             width=line,
         )
@@ -212,8 +212,14 @@ def main(argv: list[str] | None = None) -> int:
             patch.save(target)
             written.append(target.name)
 
-    ref_label = opts.overview_from or next(iter(l for l in labels if l not in lr_labels))
-    overview_img = overview(frames[ref_label], crops, opts.overview_width)
+    if opts.overview_from:
+        ref_label = opts.overview_from
+    elif lr_labels:
+        ref_label = sorted(lr_labels)[0]
+    else:
+        ref_label = next(iter(labels))
+    overview_scale = opts.scale if ref_label in lr_labels else 1
+    overview_img = overview(frames[ref_label], crops, opts.overview_width, overview_scale)
     overview_img.save(opts.out / "klatka_pelna.png")
     written.append("klatka_pelna.png")
 
