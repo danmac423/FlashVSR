@@ -137,8 +137,8 @@ def plot_e1(manifest: dict) -> None:
     fig, ax = plt.subplots(figsize=(5.5, 3.6))
 
     styles = {
-        ("flash", "block_sparse"): ("o", MUTED, "SDPA / blokowo-rzadka"),
-        ("sage", "block_sparse"): ("^", MUTED, "SageAttention / blokowo-rzadka"),
+        ("flash", "block_sparse"): ("o", MUTED, "SDPA / Block Sparse Attention"),
+        ("sage", "block_sparse"): ("^", MUTED, "SageAttention / Block Sparse Attention"),
         ("flash", "sparse_sage"): ("o", INK, "SDPA / SpargeAttention"),
         ("sage", "sparse_sage"): ("^", INK, "SageAttention / SpargeAttention"),
     }

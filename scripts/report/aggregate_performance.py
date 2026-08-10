@@ -24,7 +24,7 @@ from scripts.report.common import (
 )
 
 DENSE = {"flash": "SDPA", "sage": "SageAttention"}
-SPARSE = {"block_sparse": "blokowo-rzadka", "sparse_sage": "SpargeAttention", "": "brak"}
+SPARSE = {"block_sparse": "Block Sparse Attention", "sparse_sage": "SpargeAttention", "": "brak"}
 QUANT = {
     "none": "brak",
     "int8_weight_only": "INT8 wag",
