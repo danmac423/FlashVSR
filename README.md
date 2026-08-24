@@ -348,11 +348,3 @@ uv run python -m scripts.report.make_crops \
 ## Thesis assets
 
 - `assets/` holds the finalized figures (`assets/diagrams/`), sample visual results (`assets/visual_results/`), and Typst tables (`assets/tables/`) actually committed for use in the thesis document - treat these as frozen artifacts, not regeneration output.
-
-## Development
-
-```bash
-uv run pytest tests/ -v                        # run unit tests
-uv run ruff check src benchmarks tests          # lint
-uv run ruff format src benchmarks tests         # format
-```
