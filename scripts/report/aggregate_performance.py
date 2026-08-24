@@ -91,6 +91,10 @@ def build_e1(manifest: dict) -> None:
                 f"(wejście {first.input_height} $times$ {first.input_width}, "
                 f"kafel {first.tile_height}, {first.num_frames} klatek)"
             ),
+            caption_short=(
+                "Czas inferencji i szczytowe zużycie pamięci dla dwunastu kombinacji "
+                "mechanizmu uwagi i trybu kwantyzacji"
+            ),
             label="tab:e1",
             columns="(auto, auto, auto, auto, auto, auto)",
             align="(left, left, left, right, right, right)",
@@ -113,7 +117,7 @@ def build_e1(manifest: dict) -> None:
             label="tab:e1-delty",
             columns="(auto, auto, auto, auto)",
             align="(left, right, right, right)",
-            header=["Konfiguracja", "Czas", "Pamięć", "Pamięć (wzgl.)"],
+            header=["Konfiguracja", "Czas (wzgl.)", "Pamięć", "Pamięć (wzgl.)"],
             rows=deltas,
         ),
     )
@@ -146,7 +150,7 @@ def build_e2(manifest: dict) -> None:
         count, processed, redundancy = tile_geometry(h, w, tile, overlap)
 
         if agg.oom:
-            rows.append([str(tile), str(count), num(redundancy, 2), "przepełnienie", "-", "-", "-"])
+            rows.append([str(tile), str(count), num(redundancy, 2), "przepełnienie", "—", "—", "—"])
             continue
 
         rows.append(
@@ -169,12 +173,13 @@ def build_e2(manifest: dict) -> None:
                 f"(wejście {max(r.input_height for r in runs)} $times$ "
                 f"{max(r.input_width for r in runs)}, zakładka {overlap})"
             ),
+            caption_short="Czas inferencji i szczytowe zużycie pamięci w funkcji rozmiaru kafla",
             label="tab:e2",
             columns="(auto, auto, auto, auto, auto, auto, auto)",
             align="(right, right, right, right, right, right, right)",
             header=[
-                "Kafel",
-                "Kafli",
+                "Rozmiar kafla",
+                "Liczba kafli",
                 "Redundancja",
                 "Czas [s]",
                 "s/klatkę",
@@ -222,7 +227,7 @@ def build_feasibility(manifest: dict) -> None:
         ]
     ]
     if tile in sweep and sweep[tile].oom:
-        rows.append(["odniesienia", str(tile), "przepełnienie", "-", "-"])
+        rows.append(["odniesienia", str(tile), "przepełnienie", "—", "—"])
 
     dense = DENSE.get(runs[0].attn_mode, runs[0].attn_mode)
     sparse = SPARSE.get(runs[0].mask_attn_mode, runs[0].mask_attn_mode)
@@ -246,6 +251,7 @@ def build_feasibility(manifest: dict) -> None:
                 f"badanych technik (wejście {runs[0].input_height} $times$ "
                 f"{runs[0].input_width}, {runs[0].num_frames} klatek)"
             ),
+            caption_short="Przesunięcie granicy wykonalności",
             label="tab:granica",
             columns="(auto, auto, auto, auto, auto)",
             align="(left, right, left, right, right)",
@@ -293,10 +299,8 @@ def build_reference(manifest: dict) -> None:
     write_table(
         "referencja.typ",
         typst_table(
-            caption=(
-                "Zapotrzebowanie konfiguracji referencyjnej bez kafelkowania "
-                "przestrzennego, zmierzone na akceleratorze A100"
-            ),
+            caption="Zapotrzebowanie konfiguracji bazowej, zmierzone na akceleratorze A100",
+            caption_short="Zapotrzebowanie konfiguracji bazowej",
             label="tab:referencja",
             columns="(auto, auto, auto, auto)",
             align="(right, right, right, right)",

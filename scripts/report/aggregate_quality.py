@@ -37,6 +37,10 @@ DATASET_CAPTION = {
     "YouHQ40": "Metryki jakości dla zbioru YouHQ40, wartości uśrednione po klipach",
     "VideoLQ": "Metryki bezreferencyjne dla zbioru VideoLQ, wartości uśrednione po klipach",
 }
+DATASET_CAPTION_SHORT = {
+    "YouHQ40": "Metryki jakości dla zbioru YouHQ40",
+    "VideoLQ": "Metryki bezreferencyjne dla zbioru VideoLQ",
+}
 
 
 def read_average(root: str, dataset: str, label: str) -> dict[str, float | None] | None:
@@ -76,7 +80,8 @@ def build_dataset(manifest: dict, dataset: str) -> None:
         return
 
     present = [m for m in METRICS if any(data[label].get(m[0]) is not None for label in data)]
-    header = ["Konfiguracja"] + [h for _, h, _, _ in present]
+    arrow = {False: "#sym.arrow.t", True: "#sym.arrow.b"}
+    header = ["Konfiguracja"] + [f"{h}{arrow[lower_better]}" for _, h, _, lower_better in present]
     columns = "(auto," + " auto," * len(present)
     columns = columns.rstrip(",") + ")"
     align = "(left" + ", right" * len(present) + ")"
@@ -90,6 +95,7 @@ def build_dataset(manifest: dict, dataset: str) -> None:
         f"jakosc_{dataset.lower()}.typ",
         typst_table(
             caption=DATASET_CAPTION.get(dataset, f"Metryki jakości dla zbioru {dataset}"),
+            caption_short=DATASET_CAPTION_SHORT.get(dataset, f"Metryki jakości dla zbioru {dataset}"),
             label=f"tab:jakosc-{dataset.lower()}",
             columns=columns,
             align=align,
@@ -134,11 +140,7 @@ def build_dataset(manifest: dict, dataset: str) -> None:
             write_table(
                 f"jakosc_{dataset.lower()}_kafle.typ",
                 typst_table(
-                    caption=(
-                        f"Metryki jakości dla różnych rozmiarów kafla, zbiór "
-                        f"{dataset}. Pozostałe parametry jak w konfiguracji "
-                        f"z kafelkowaniem z @tab:jakosc-{dataset.lower()}"
-                    ),
+                    caption=f"Metryki jakości dla różnych rozmiarów kafla, zbiór {dataset}.",
                     label=f"tab:jakosc-{dataset.lower()}-kafle",
                     columns=columns,
                     align=align,

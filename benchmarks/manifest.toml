@@ -103,7 +103,7 @@ datasets = ["YouHQ40", "VideoLQ"]
 # a pole "change" opisuje różnicę względem szczebla poprzedniego.
 [[quality.rung]]
 file = "SR"
-name = "bez kafelkowania"
+name = "bazowa"
 change = "konfiguracja referencyjna"
 
 [[quality.rung]]

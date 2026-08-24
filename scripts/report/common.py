@@ -270,7 +270,7 @@ def num(value: float | None, precision: int = 1, dash: str = "-") -> str:
 def integer(value: float | None, dash: str = "-") -> str:
     if value is None:
         return dash
-    return f"{int(round(value)):,}".replace(",", "\u2009")  # spacja półpauzowa
+    return f"{int(round(value)):,}".replace(",", " ")  # spacja jako separator tysięcy
 
 
 def signed(value: float | None, precision: int = 1, unit: str = "") -> str:
@@ -281,7 +281,7 @@ def signed(value: float | None, precision: int = 1, unit: str = "") -> str:
     rounded = round(value, precision)
     if rounded == 0:
         return f"{0:.{precision}f}".replace(".", ",") + unit
-    sign = "+" if rounded > 0 else "\u2212"
+    sign = "+" if rounded > 0 else "-"
     return f"{sign}{abs(rounded):.{precision}f}".replace(".", ",") + unit
 
 
@@ -296,21 +296,36 @@ def typst_table(
     rows: list[list[str]],
     align: str = "left + top",
     text_size: str = "8.5pt",
+    caption_short: str | None = None,
 ) -> str:
-    """Buduje blok #figure w stylu zgodnym z pozostałymi tabelami pracy."""
+    """Buduje blok #figure w stylu zgodnym z pozostałymi tabelami pracy.
+
+    Gdy podano ``caption_short``, długi opis trafia do listy tabel w skróconej
+    postaci przez ``flex-caption`` (import z ``utils.typ`` jest już obecny
+    w pliku, do którego wynik jest wklejany).
+    """
 
     def escape(value: str) -> str:
         # Nawiasy kwadratowe wewnątrz bloku zawartości Typst rozpoczynałyby
         # blok zagnieżdżony, przez co znikałyby z wyniku.
-        return value.replace("[", "\\[").replace("]", "\\]")
+        value = value.replace("[", "\\[").replace("]", "\\]")
+        # "+ " lub "- " na początku treści komórki Typst odczytałby jako
+        # znacznik listy, dlatego znak trzeba poprzedzić ukośnikiem.
+        if value.startswith("+ ") or value.startswith("- "):
+            value = "\\" + value
+        return value
 
     def cells(values: list[str]) -> str:
         return ", ".join(f"[{escape(v)}]" for v in values)
 
     body = ",\n      ".join(cells(r) for r in rows)
+    if caption_short is not None:
+        caption_block = f"flex-caption(\n    [{caption}],\n    [{caption_short}],\n  )"
+    else:
+        caption_block = f"[{caption}]"
     return f"""#figure(
   kind: table,
-  caption: [{caption}],
+  caption: {caption_block},
   [
     #set text(size: {text_size})
     #show table.cell.where(y: 0): strong
