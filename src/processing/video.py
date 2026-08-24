@@ -161,7 +161,7 @@ def flashvsr(
         spatial_tiling_config (SpatialTilingConfig): Spatial tiling configuration
         temporal_tiling_config (TemporalTilingConfig): Temporal tiling configuration
         input_frames: Optional pre-loaded tensor (T, H, W, C) float16 [0,1].
-            When provided, skips VideoDecoder — no file I/O on input.
+            When provided, skips VideoDecoder - no file I/O on input.
     """
     if input_frames is not None:
         num_frames = input_frames.shape[0]

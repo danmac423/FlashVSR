@@ -240,9 +240,7 @@ def benchmark(
         torch.cuda.reset_peak_memory_stats(device.index)
 
         try:
-            validate_attention_availability(
-                combo.attn_mode, combo.mask_attn_mode, strict=True
-            )
+            validate_attention_availability(combo.attn_mode, combo.mask_attn_mode, strict=True)
             t0 = time.perf_counter()
             pipe = init_pipeline(
                 model,
@@ -256,7 +254,7 @@ def benchmark(
             )
             init_time = time.perf_counter() - t0
         except Exception as exc:
-            logger.error("Init failed — skipping: %s", exc)
+            logger.error("Init failed - skipping: %s", exc)
             continue
 
         vram_after_init = _vram_reserved_mb(device)
@@ -268,16 +266,18 @@ def benchmark(
             try:
                 _run_inference(pipe, frames, combo, proc_config, spatial_config, temporal_config)
             except Exception as exc:
-                is_oom = isinstance(exc, torch.OutOfMemoryError) or "out of memory" in str(exc).lower()
+                is_oom = (
+                    isinstance(exc, torch.OutOfMemoryError) or "out of memory" in str(exc).lower()
+                )
                 if is_oom:
                     # Let OOM propagate like it already does for measured runs, instead of
-                    # silently skipping the combination — but clean up the pipe first so the
+                    # silently skipping the combination - but clean up the pipe first so the
                     # next combination doesn't inherit its VRAM.
                     del pipe
                     gc.collect()
                     torch.cuda.empty_cache()
                     raise
-                logger.error("Warmup failed — skipping combination: %s", exc)
+                logger.error("Warmup failed - skipping combination: %s", exc)
                 warmup_ok = False
                 break
 

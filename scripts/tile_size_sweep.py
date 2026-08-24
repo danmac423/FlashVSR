@@ -98,7 +98,7 @@ def main() -> None:
             is_oom = isinstance(exc, torch.OutOfMemoryError) or "out of memory" in str(exc).lower()
             if not is_oom:
                 raise
-            logger.error("tile_size=%d OOM — recording and continuing: %s", tile_size, exc)
+            logger.error("tile_size=%d OOM - recording and continuing: %s", tile_size, exc)
             rows.append({"tile_size": tile_size, "label": combo.label, "oom": True})
             results = []
         finally:

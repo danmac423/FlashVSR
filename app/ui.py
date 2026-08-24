@@ -136,7 +136,7 @@ def process_video(
 
 
 with gr.Blocks(title="FlashVSR") as demo:
-    gr.Markdown("# FlashVSR — Video Super Resolution")
+    gr.Markdown("# FlashVSR - Video Super Resolution")
 
     with gr.Row():
         with gr.Column():

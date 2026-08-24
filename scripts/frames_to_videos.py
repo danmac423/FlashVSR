@@ -38,13 +38,20 @@ def _frames_to_video(frames_dir, out_path, fps):
     pattern = str(Path(frames_dir) / f"%0{digits}d.png")
     start = int(pngs[0].stem)
     cmd = [
-        "ffmpeg", "-y",
-        "-framerate", str(fps),
-        "-start_number", str(start),
-        "-i", pattern,
-        "-c:v", "libx264",
-        "-pix_fmt", "yuv420p",
-        "-crf", "18",
+        "ffmpeg",
+        "-y",
+        "-framerate",
+        str(fps),
+        "-start_number",
+        str(start),
+        "-i",
+        pattern,
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-crf",
+        "18",
         str(out_path),
     ]
     result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -70,11 +77,11 @@ def main():
     for i, (clip_name, clip_dir) in enumerate(clips):
         out_path = os.path.join(args.output, f"{clip_name}.mp4")
         if os.path.exists(out_path):
-            print(f"  [{i+1}/{len(clips)}] {clip_name} — skip (exists)")
+            print(f"  [{i + 1}/{len(clips)}] {clip_name} - skip (exists)")
             continue
         ok = _frames_to_video(clip_dir, out_path, fps=args.fps)
         status = "OK" if ok else "FAILED"
-        print(f"  [{i+1}/{len(clips)}] {clip_name} {status}")
+        print(f"  [{i + 1}/{len(clips)}] {clip_name} {status}")
         if not ok:
             failed.append(clip_name)
 

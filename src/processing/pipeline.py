@@ -145,7 +145,7 @@ def init_pipeline(
         quantize_(pipe.dit, quant_cfg)
         logger.info("Quantization complete.")
         if vram_config.enabled:
-            logger.warning("VRAM management is not supported with quantization — skipping.")
+            logger.warning("VRAM management is not supported with quantization - skipping.")
     elif vram_config.enabled:
         logger.info(
             "Enabling VRAM management (num_persistent_param_in_dit=%s)...",

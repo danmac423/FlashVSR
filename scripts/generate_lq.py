@@ -36,6 +36,7 @@ logger = get_logger()
 
 # ── Kernel generators ──────────────────────────────────────────────────────────
 
+
 def _grid(ks: int):
     half = ks // 2
     x = torch.arange(-half, half + 1, dtype=torch.float32)
@@ -60,14 +61,14 @@ def aniso_gaussian(ks: int, sx: float, sy: float, angle: float) -> torch.Tensor:
 
 def gen_iso_gaussian(ks: int, sigma: float, beta: float) -> torch.Tensor:
     Y, X = _grid(ks)
-    return _norm(torch.exp(-((X**2 + Y**2) / (2 * sigma**2)) ** beta))
+    return _norm(torch.exp(-(((X**2 + Y**2) / (2 * sigma**2)) ** beta)))
 
 
 def gen_aniso_gaussian(ks: int, sx: float, sy: float, angle: float, beta: float) -> torch.Tensor:
     Y, X = _grid(ks)
     ca, sa = math.cos(angle), math.sin(angle)
     Xr, Yr = ca * X - sa * Y, sa * X + ca * Y
-    return _norm(torch.exp(-((Xr**2 / sx**2 + Yr**2 / sy**2) / 2) ** beta))
+    return _norm(torch.exp(-(((Xr**2 / sx**2 + Yr**2 / sy**2) / 2) ** beta)))
 
 
 def plateau_iso(ks: int, sigma: float, beta: float) -> torch.Tensor:
@@ -123,6 +124,7 @@ def sample_kernel(p: dict) -> torch.Tensor:
 
 # ── Per-frame image transforms ─────────────────────────────────────────────────
 
+
 def conv_blur(img: np.ndarray, k: torch.Tensor) -> np.ndarray:
     """Apply 2-D separable convolution with kernel k. img: H×W×3 float32 [0,1]."""
     ks = k.shape[0]
@@ -151,10 +153,14 @@ def _apply_poisson_noise(img: np.ndarray, scale: float, gray_prob: float) -> np.
     gray = random.random() < gray_prob
     if gray:
         base = img.mean(axis=2, keepdims=True)
-        noisy = np.random.poisson(np.maximum(base * 255 * scale, 0)).astype(np.float32) / (255 * scale)
+        noisy = np.random.poisson(np.maximum(base * 255 * scale, 0)).astype(np.float32) / (
+            255 * scale
+        )
         return img + np.repeat(noisy - base, c, axis=2)
     else:
-        noisy = np.random.poisson(np.maximum(img * 255 * scale, 0)).astype(np.float32) / (255 * scale)
+        noisy = np.random.poisson(np.maximum(img * 255 * scale, 0)).astype(np.float32) / (
+            255 * scale
+        )
         return noisy
 
 
@@ -181,9 +187,7 @@ def blur_clip(frames: list, params: dict, prob: float = 1.0) -> list:
 
 def resize_clip(frames: list, params: dict, target_size: tuple | None = None) -> list:
     h, w = frames[0].shape[:2]
-    interp = random.choices(
-        list(_PIL_INTERP.values()), weights=[1 / 3] * 3
-    )[0]
+    interp = random.choices(list(_PIL_INTERP.values()), weights=[1 / 3] * 3)[0]
 
     if target_size is not None:
         th, tw = target_size
@@ -243,16 +247,26 @@ def video_compress_clip(frames: list, params: dict) -> list:
 
         for i, f in enumerate(frames):
             Image.fromarray((f * 255).clip(0, 255).astype(np.uint8)).save(
-                os.path.join(in_dir, f"{i+1:05d}.png")
+                os.path.join(in_dir, f"{i + 1:05d}.png")
             )
 
         encoded = os.path.join(tmp, "vid.mp4")
         ret = subprocess.run(
             [
-                "ffmpeg", "-y", "-loglevel", "error",
-                "-r", "25", "-i", os.path.join(in_dir, "%05d.png"),
-                "-vcodec", codec, "-b:v", str(bitrate),
-                "-vf", f"scale={w}:{h}",
+                "ffmpeg",
+                "-y",
+                "-loglevel",
+                "error",
+                "-r",
+                "25",
+                "-i",
+                os.path.join(in_dir, "%05d.png"),
+                "-vcodec",
+                codec,
+                "-b:v",
+                str(bitrate),
+                "-vf",
+                f"scale={w}:{h}",
                 encoded,
             ],
             capture_output=True,
@@ -262,26 +276,32 @@ def video_compress_clip(frames: list, params: dict) -> list:
             return frames
 
         subprocess.run(
-            ["ffmpeg", "-y", "-loglevel", "error", "-i", encoded,
-             os.path.join(out_dir, "%05d.png")],
+            [
+                "ffmpeg",
+                "-y",
+                "-loglevel",
+                "error",
+                "-i",
+                encoded,
+                os.path.join(out_dir, "%05d.png"),
+            ],
             capture_output=True,
             check=True,
         )
 
         result = []
         for i in range(len(frames)):
-            p = os.path.join(out_dir, f"{i+1:05d}.png")
+            p = os.path.join(out_dir, f"{i + 1:05d}.png")
             if os.path.exists(p):
-                result.append(
-                    np.array(Image.open(p).convert("RGB"), dtype=np.float32) / 255.0
-                )
+                result.append(np.array(Image.open(p).convert("RGB"), dtype=np.float32) / 255.0)
             else:
                 result.append(frames[i])
         return result
 
 
-def unsharp_masking_clip(frames: list, ks: int = 51, sigma: float = 0.0,
-                          weight: float = 0.5, threshold: int = 10) -> list:
+def unsharp_masking_clip(
+    frames: list, ks: int = 51, sigma: float = 0.0, weight: float = 0.5, threshold: int = 10
+) -> list:
     if sigma == 0.0:
         # OpenCV formula: sigma = 0.3 * ((ksize - 1) * 0.5 - 1) + 0.8
         sigma = 0.3 * ((ks - 1) * 0.5 - 1) + 0.8
@@ -305,41 +325,68 @@ def quantize_clip(frames: list) -> list:
 
 _BLUR1 = dict(
     kernel_size=[7, 9, 11, 13, 15, 17, 19, 21],
-    kernel_list=["iso", "aniso", "generalized_iso", "generalized_aniso",
-                 "plateau_iso", "plateau_aniso", "sinc"],
+    kernel_list=[
+        "iso",
+        "aniso",
+        "generalized_iso",
+        "generalized_aniso",
+        "plateau_iso",
+        "plateau_aniso",
+        "sinc",
+    ],
     kernel_prob=[0.405, 0.225, 0.108, 0.027, 0.108, 0.027, 0.1],
-    sigma_x=[0.2, 3.0], sigma_y=[0.2, 3.0],
+    sigma_x=[0.2, 3.0],
+    sigma_y=[0.2, 3.0],
     rotate_angle=[-math.pi, math.pi],
-    beta_gaussian=[0.5, 4.0], beta_plateau=[1.0, 2.0],
+    beta_gaussian=[0.5, 4.0],
+    beta_plateau=[1.0, 2.0],
 )
 _RESIZE1 = dict(resize_mode_prob=[0.2, 0.7, 0.1], resize_scale=[0.15, 1.5], is_size_even=True)
 _NOISE1 = dict(
-    noise_type=["gaussian", "poisson"], noise_prob=[0.5, 0.5],
-    gaussian_sigma=[1, 30], gaussian_gray_noise_prob=0.4,
-    poisson_scale=[0.05, 3.0], poisson_gray_noise_prob=0.4,
+    noise_type=["gaussian", "poisson"],
+    noise_prob=[0.5, 0.5],
+    gaussian_sigma=[1, 30],
+    gaussian_gray_noise_prob=0.4,
+    poisson_scale=[0.05, 3.0],
+    poisson_gray_noise_prob=0.4,
 )
 _JPEG1 = [30, 95]
-_VIDEO = dict(codec=["libx264", "h264", "mpeg4"], codec_prob=[1/3, 1/3, 1/3], bitrate=[1e4, 1e5])
+_VIDEO = dict(
+    codec=["libx264", "h264", "mpeg4"], codec_prob=[1 / 3, 1 / 3, 1 / 3], bitrate=[1e4, 1e5]
+)
 
 _BLUR2 = dict(
     kernel_size=[7, 9, 11, 13, 15, 17, 19, 21],
-    kernel_list=["iso", "aniso", "generalized_iso", "generalized_aniso",
-                 "plateau_iso", "plateau_aniso", "sinc"],
+    kernel_list=[
+        "iso",
+        "aniso",
+        "generalized_iso",
+        "generalized_aniso",
+        "plateau_iso",
+        "plateau_aniso",
+        "sinc",
+    ],
     kernel_prob=[0.405, 0.225, 0.108, 0.027, 0.108, 0.027, 0.1],
-    sigma_x=[0.2, 1.5], sigma_y=[0.2, 1.5],
+    sigma_x=[0.2, 1.5],
+    sigma_y=[0.2, 1.5],
     rotate_angle=[-math.pi, math.pi],
-    beta_gaussian=[0.5, 4.0], beta_plateau=[1.0, 2.0],
+    beta_gaussian=[0.5, 4.0],
+    beta_plateau=[1.0, 2.0],
 )
 _RESIZE2 = dict(resize_mode_prob=[0.3, 0.4, 0.3], resize_scale=[0.3, 1.2], is_size_even=True)
 _NOISE2 = dict(
-    noise_type=["gaussian", "poisson"], noise_prob=[0.5, 0.5],
-    gaussian_sigma=[1, 25], gaussian_gray_noise_prob=0.4,
-    poisson_scale=[0.05, 2.5], poisson_gray_noise_prob=0.4,
+    noise_type=["gaussian", "poisson"],
+    noise_prob=[0.5, 0.5],
+    gaussian_sigma=[1, 25],
+    gaussian_gray_noise_prob=0.4,
+    poisson_scale=[0.05, 2.5],
+    poisson_gray_noise_prob=0.4,
 )
 _JPEG2 = [30, 95]
 _SINC = dict(
     kernel_size=[7, 9, 11, 13, 15, 17, 19, 21],
-    kernel_list=["sinc"], kernel_prob=[1.0],
+    kernel_list=["sinc"],
+    kernel_prob=[1.0],
     omega=[math.pi / 3, math.pi],
 )
 
@@ -408,8 +455,7 @@ def load_frames(folder: Path) -> tuple[list, list]:
     paths = sorted(p for p in folder.iterdir() if p.suffix.lower() in IMAGE_EXTS)
     if not paths:
         raise FileNotFoundError(f"No image files found in {folder}")
-    frames = [np.array(Image.open(p).convert("RGB"), dtype=np.float32) / 255.0
-              for p in paths]
+    frames = [np.array(Image.open(p).convert("RGB"), dtype=np.float32) / 255.0 for p in paths]
     return frames, paths
 
 
@@ -420,20 +466,25 @@ def save_frames(frames: list, paths: list, out_dir: Path) -> None:
         Image.fromarray(arr).save(out_dir / p.name)
 
 
-def degrade_video(frames: list, paths: list, out_dir: Path,
-                  scale: int, clip_length: int) -> None:
+def degrade_video(frames: list, paths: list, out_dir: Path, scale: int, clip_length: int) -> None:
     n = len(frames)
     n_clips = math.ceil(n / clip_length)
     for clip_idx, start in enumerate(range(0, n, clip_length)):
-        clip_frames = frames[start:start + clip_length]
-        clip_paths = paths[start:start + clip_length]
-        logger.info("  clip %d/%d (frames %d–%d)",
-                    clip_idx + 1, n_clips, start + 1, start + len(clip_frames))
+        clip_frames = frames[start : start + clip_length]
+        clip_paths = paths[start : start + clip_length]
+        logger.info(
+            "  clip %d/%d (frames %d–%d)",
+            clip_idx + 1,
+            n_clips,
+            start + 1,
+            start + len(clip_frames),
+        )
         lqs = degrade(clip_frames, scale=scale)
         save_frames(lqs, clip_paths, out_dir)
 
 
 # ── CLI ────────────────────────────────────────────────────────────────────────
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -443,12 +494,15 @@ def main() -> None:
     parser.add_argument("lq_dir", type=Path, help="Output LQ frames directory")
     parser.add_argument("--scale", type=int, default=4, help="Downscaling factor (default: 4)")
     parser.add_argument(
-        "--clip-length", type=int, default=89,
-        help="Frames per clip — parameters are re-sampled each clip (default: 89, same as FlashVSR training)"
+        "--clip-length",
+        type=int,
+        default=89,
+        help="Frames per clip - parameters are re-sampled each clip (default: 89, same as FlashVSR training)",
     )
     parser.add_argument(
-        "--multi-video", action="store_true",
-        help="Treat hq_dir as a root with one sub-directory per video"
+        "--multi-video",
+        action="store_true",
+        help="Treat hq_dir as a root with one sub-directory per video",
     )
     parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility")
     args = parser.parse_args()
@@ -471,12 +525,12 @@ def main() -> None:
             frames, paths = load_frames(vdir)
             logger.info("[%d/%d] %s  (%d frames)", i + 1, len(video_dirs), vdir.name, len(frames))
             degrade_video(frames, paths, out_dir, args.scale, args.clip_length)
-        logger.info("Done — %d videos → %s", len(video_dirs), args.lq_dir)
+        logger.info("Done - %d videos → %s", len(video_dirs), args.lq_dir)
     else:
         frames, paths = load_frames(args.hq_dir)
         logger.info("[1/1] %s  (%d frames)", args.hq_dir.name, len(frames))
         degrade_video(frames, paths, args.lq_dir, args.scale, args.clip_length)
-        logger.info("Done — %s", args.lq_dir)
+        logger.info("Done - %s", args.lq_dir)
 
 
 if __name__ == "__main__":

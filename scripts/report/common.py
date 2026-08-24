@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-RESULTS_ROOT = REPO_ROOT           # ścieżki w manifeście są względem korzenia
+RESULTS_ROOT = REPO_ROOT  # ścieżki w manifeście są względem korzenia
 MANIFEST_PATH = REPO_ROOT / "benchmarks" / "manifest.toml"
 TABLES_DIR = REPO_ROOT / "report" / "tables"
 FIGURES_DIR = REPO_ROOT / "report" / "figures"
@@ -239,9 +239,7 @@ def _tile_coords_fallback(
     return coords
 
 
-def tile_geometry(
-    height: int, width: int, tile: int, overlap: int
-) -> tuple[int, int, float]:
+def tile_geometry(height: int, width: int, tile: int, overlap: int) -> tuple[int, int, float]:
     """Zwraca liczbę kafli, łączną przetworzoną powierzchnię i redundancję.
 
     Wartości wyznaczane są tą samą funkcją, której używa potok inferencji,
@@ -262,14 +260,14 @@ def tile_geometry(
 # ------------------------------------------------------------------ formatowanie
 
 
-def num(value: float | None, precision: int = 1, dash: str = "—") -> str:
+def num(value: float | None, precision: int = 1, dash: str = "-") -> str:
     """Liczba w zapisie polskim, z przecinkiem dziesiętnym."""
     if value is None:
         return dash
     return f"{value:.{precision}f}".replace(".", ",")
 
 
-def integer(value: float | None, dash: str = "—") -> str:
+def integer(value: float | None, dash: str = "-") -> str:
     if value is None:
         return dash
     return f"{int(round(value)):,}".replace(",", "\u2009")  # spacja półpauzowa
@@ -279,7 +277,7 @@ def signed(value: float | None, precision: int = 1, unit: str = "") -> str:
     """Liczba ze znakiem. Wartość zerowa po zaokrągleniu podawana jest bez znaku,
     aby uniknąć zapisów w rodzaju "-0,00"."""
     if value is None:
-        return "—"
+        return "-"
     rounded = round(value, precision)
     if rounded == 0:
         return f"{0:.{precision}f}".replace(".", ",") + unit

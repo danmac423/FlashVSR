@@ -94,7 +94,14 @@ def build_e1(manifest: dict) -> None:
             label="tab:e1",
             columns="(auto, auto, auto, auto, auto, auto)",
             align="(left, left, left, right, right, right)",
-            header=["Jądro gęste", "Selekcja rzadka", "Kwantyzacja", "Czas [s]", "s/klatkę", "Szczyt [MiB]"],
+            header=[
+                "Jądro gęste",
+                "Selekcja rzadka",
+                "Kwantyzacja",
+                "Czas [s]",
+                "s/klatkę",
+                "Szczyt [MiB]",
+            ],
             rows=rows,
         ),
     )
@@ -139,9 +146,7 @@ def build_e2(manifest: dict) -> None:
         count, processed, redundancy = tile_geometry(h, w, tile, overlap)
 
         if agg.oom:
-            rows.append(
-                [str(tile), str(count), num(redundancy, 2), "przepełnienie", "—", "—", "—"]
-            )
+            rows.append([str(tile), str(count), num(redundancy, 2), "przepełnienie", "-", "-", "-"])
             continue
 
         rows.append(
@@ -168,8 +173,13 @@ def build_e2(manifest: dict) -> None:
             columns="(auto, auto, auto, auto, auto, auto, auto)",
             align="(right, right, right, right, right, right, right)",
             header=[
-                "Kafel", "Kafli", "Redundancja", "Czas [s]", "s/klatkę",
-                "Czas/kafel [s]", "Szczyt [MiB]",
+                "Kafel",
+                "Kafli",
+                "Redundancja",
+                "Czas [s]",
+                "s/klatkę",
+                "Czas/kafel [s]",
+                "Szczyt [MiB]",
             ],
             rows=rows,
         ),
@@ -212,7 +222,7 @@ def build_feasibility(manifest: dict) -> None:
         ]
     ]
     if tile in sweep and sweep[tile].oom:
-        rows.append(["odniesienia", str(tile), "przepełnienie", "—", "—"])
+        rows.append(["odniesienia", str(tile), "przepełnienie", "-", "-"])
 
     dense = DENSE.get(runs[0].attn_mode, runs[0].attn_mode)
     sparse = SPARSE.get(runs[0].mask_attn_mode, runs[0].mask_attn_mode)
@@ -245,8 +255,10 @@ def build_feasibility(manifest: dict) -> None:
     )
 
     budget = manifest["meta"]["budget_mib"]
-    print(f"\n  kafel {tile} po zastosowaniu technik: {agg.peak_mib:.0f} MiB "
-          f"({budget - agg.peak_mib:.0f} MiB poniżej progu), czas {agg.time_s:.1f} s")
+    print(
+        f"\n  kafel {tile} po zastosowaniu technik: {agg.peak_mib:.0f} MiB "
+        f"({budget - agg.peak_mib:.0f} MiB poniżej progu), czas {agg.time_s:.1f} s"
+    )
     print(f"  ten sam kafel w konfiguracji odniesienia: przepełnienie")
 
 
@@ -264,9 +276,7 @@ def build_reference(manifest: dict) -> None:
         if not spec["id"].startswith("ref_a100"):
             continue
         runs = read_runs(spec)
-        a100[(runs[0].input_height, runs[0].input_width)] = Aggregate(
-            key=(spec["id"],), runs=runs
-        )
+        a100[(runs[0].input_height, runs[0].input_width)] = Aggregate(key=(spec["id"],), runs=runs)
 
     rows = []
     for res in sorted(a100, key=lambda r: r[0] * r[1]):
@@ -291,7 +301,9 @@ def build_reference(manifest: dict) -> None:
             columns="(auto, auto, auto, auto)",
             align="(right, right, right, right)",
             header=[
-                "Wejście", "Szczyt [MiB]", "Czas [s]",
+                "Wejście",
+                "Szczyt [MiB]",
+                "Czas [s]",
                 "Krotność pojemności RTX 3080",
             ],
             rows=rows,
@@ -320,9 +332,9 @@ def build_reference(manifest: dict) -> None:
 def main() -> None:
     manifest = load_manifest()
     verify_manifest(manifest)
-    print("E1 — mechanizm uwagi i kwantyzacja")
+    print("E1 - mechanizm uwagi i kwantyzacja")
     build_e1(manifest)
-    print("\nE2 — rozmiar kafla")
+    print("\nE2 - rozmiar kafla")
     build_e2(manifest)
     print("\nGranica wykonalności")
     build_feasibility(manifest)

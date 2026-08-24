@@ -75,9 +75,7 @@ def build_dataset(manifest: dict, dataset: str) -> None:
         print(f"  {dataset}: brak plików, pomijam")
         return
 
-    present = [
-        m for m in METRICS if any(data[label].get(m[0]) is not None for label in data)
-    ]
+    present = [m for m in METRICS if any(data[label].get(m[0]) is not None for label in data)]
     header = ["Konfiguracja"] + [h for _, h, _, _ in present]
     columns = "(auto," + " auto," * len(present)
     columns = columns.rstrip(",") + ")"
@@ -107,15 +105,13 @@ def build_dataset(manifest: dict, dataset: str) -> None:
         delta_row = [ladder[i][1]]
         for key, _, prec, _ in present:
             a, b = data[prev_label].get(key), data[curr_label].get(key)
-            delta_row.append("—" if a is None or b is None else signed(b - a, prec))
+            delta_row.append("-" if a is None or b is None else signed(b - a, prec))
         deltas.append(delta_row)
 
     write_table(
         f"jakosc_{dataset.lower()}_delty.typ",
         typst_table(
-            caption=(
-                f"Zmiana metryk względem konfiguracji poprzedniej, zbiór {dataset}"
-            ),
+            caption=(f"Zmiana metryk względem konfiguracji poprzedniej, zbiór {dataset}"),
             label=f"tab:jakosc-{dataset.lower()}-delty",
             columns=columns,
             align=align,
@@ -154,7 +150,7 @@ def build_dataset(manifest: dict, dataset: str) -> None:
     # Podsumowanie tekstowe: ile kosztuje pierwszy szczebel, ile wszystkie dalsze.
     rungs = [l for l, _ in ladder]
     if len(rungs) >= 3:
-        print(f"\n  {dataset} — udział pierwszego szczebla w całkowitej zmianie:")
+        print(f"\n  {dataset} - udział pierwszego szczebla w całkowitej zmianie:")
         for key, name, prec, _ in present:
             first = data[rungs[1]].get(key), data[rungs[0]].get(key)
             rest = data[rungs[-1]].get(key), data[rungs[1]].get(key)

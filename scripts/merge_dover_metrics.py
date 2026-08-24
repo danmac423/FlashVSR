@@ -66,7 +66,7 @@ def main():
 
     common_clips = sorted(set(metrics) & set(dover))
     if not common_clips:
-        print("No common clips found — check if clip names match.", file=sys.stderr)
+        print("No common clips found - check if clip names match.", file=sys.stderr)
         sys.exit(1)
 
     fieldnames = [

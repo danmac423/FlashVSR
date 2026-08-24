@@ -1,7 +1,7 @@
 """
 Evaluate FlashVSR output quality using 6 metrics from the paper.
 
-Reference-based (FR): PSNR ↑, SSIM ↑, LPIPS ↓    — require --gt
+Reference-based (FR): PSNR ↑, SSIM ↑, LPIPS ↓    - require --gt
 No-reference (NR):    NIQE ↓, MUSIQ ↑, CLIPIQA ↑  (per-frame, SR only)
 
 Note: DOVER requires a separate environment due to torch<2 constraint.
@@ -203,7 +203,7 @@ def main() -> None:
             if gt_paths is not None and len(sr_paths) != len(gt_paths):
                 n = min(len(sr_paths), len(gt_paths))
                 logger.warning(
-                    "  Frame count mismatch SR=%d GT=%d — trimming to %d",
+                    "  Frame count mismatch SR=%d GT=%d - trimming to %d",
                     len(sr_paths),
                     len(gt_paths),
                     n,
