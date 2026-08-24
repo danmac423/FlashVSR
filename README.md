@@ -112,6 +112,8 @@ datasets/
 - **VideoLQ** (real-world LQ clips, no ground truth) is from [RealBasicVSR](https://github.com/ckkelvinchan/RealBasicVSR) - see the "VideoLQ Dataset" section of its README for the Dropbox/Google Drive/OneDrive download links. Extract it into `datasets/VideoLQ/LQ/<clip>/`.
 - **YouHQ40** (ground-truth HQ clips, LQ generated locally) is the YouHQ40-Test split from [Upscale-A-Video](https://github.com/sczhou/Upscale-A-Video) - see its README's dataset section for the Google Drive link. Extract it into `datasets/YouHQ40/HQ/<clip>/`, then generate `LQ/` as below.
 
+> The `datasets/` directory itself (source HQ/LQ frames, generated SR outputs) is not stored in this repository - only the resulting metric tables under `benchmarks/*/results/` are committed. The raw data used to compute those metrics is available on request.
+
 ### Generate LQ frames for YouHQ40
 
 ```bash
@@ -321,7 +323,7 @@ uv run python -m app.ui
 
 The UI is served at `http://localhost:7860`. Upload a video, adjust the processing/tiling/attention/quantization settings, and click "Run Super Resolution" - the output plays once the job finishes.
 
-## Generating report tables (thesis chapter 8)
+## Generating report tables
 
 `scripts/report/aggregate_performance.py` and `scripts/report/aggregate_quality.py` aggregate raw results (indexed by `benchmarks/manifest.toml`) into Typst tables:
 
